@@ -18,6 +18,8 @@ export function ProductosPage() {
   const [filters, setFilters] = useState({
     q: '',
     categoriaId: '',
+    subcategoriaId: '',
+    proveedorId: '',
     activo: '',
     page: 1
   });
@@ -28,6 +30,8 @@ export function ProductosPage() {
       const params: Record<string, string> = { page: filters.page.toString(), pageSize: '50' };
       if (filters.q) params.q = filters.q;
       if (filters.categoriaId) params.categoriaId = filters.categoriaId;
+      if (filters.subcategoriaId) params.subcategoriaId = filters.subcategoriaId;
+      if (filters.proveedorId) params.proveedorId = filters.proveedorId;
       if (filters.activo !== '') params.activo = filters.activo;
 
       const res = await api.getProductosAdmin(params);
@@ -67,6 +71,9 @@ export function ProductosPage() {
     }
   };
 
+  const selectedCategory = categorias.find(c => c.id.toString() === filters.categoriaId);
+  const subcategorias = selectedCategory ? selectedCategory.subcategorias || [] : [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">
@@ -100,12 +107,40 @@ export function ProductosPage() {
             <select 
               className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               value={filters.categoriaId}
-              onChange={e => setFilters(prev => ({ ...prev, categoriaId: e.target.value }))}
+              onChange={e => setFilters(prev => ({ ...prev, categoriaId: e.target.value, subcategoriaId: '' }))}
             >
               <option value="">Todas</option>
               {categorias.map(c => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
+            </select>
+          </div>
+
+          <div className="w-48">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
+            <select 
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+              value={filters.subcategoriaId}
+              onChange={e => setFilters(prev => ({ ...prev, subcategoriaId: e.target.value }))}
+              disabled={!filters.categoriaId || subcategorias.length === 0}
+            >
+              <option value="">Todas</option>
+              {subcategorias.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="w-48">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Proveedor</label>
+            <select 
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              value={filters.proveedorId}
+              onChange={e => setFilters(prev => ({ ...prev, proveedorId: e.target.value }))}
+            >
+              <option value="">Todos</option>
+              <option value="1">Makor</option>
+              <option value="2">Manual / Otros</option>
             </select>
           </div>
 
