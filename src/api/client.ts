@@ -1,4 +1,4 @@
-export const API_BASE = 'http://localhost:5015/api'; // From backend URL
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5015/api';
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('mmatilde_token');
