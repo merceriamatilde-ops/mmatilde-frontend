@@ -123,7 +123,7 @@ export function CategoriasPage() {
                     <button onClick={() => toggleExpand(cat.id)} className="p-1 mr-2 text-stone-400 hover:text-stone-600">
                       {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </button>
-                    <Folder className="text-amber-500 mr-3" size={20} />
+                    <Folder className="text-brand-600 mr-3" size={20} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-stone-900">{cat.nombre}</span>

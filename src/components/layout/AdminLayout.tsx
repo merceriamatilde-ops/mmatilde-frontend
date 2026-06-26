@@ -25,7 +25,7 @@ export function AdminLayout() {
       {/* Sidebar */}
       <aside className="w-64 bg-stone-900 text-stone-300 flex-shrink-0 flex flex-col">
         <div className="h-16 flex items-center px-6 bg-stone-950">
-          <span className="text-xl font-bold text-white tracking-tight">Matilde <span className="text-amber-500">BO</span></span>
+          <span className="text-xl font-bold text-white tracking-tight">Matilde <span className="text-brand-600">BO</span></span>
         </div>
         
         <nav className="flex-1 py-4 space-y-1">
@@ -38,7 +38,7 @@ export function AdminLayout() {
                 to={item.href}
                 className={`flex items-center px-6 py-3 text-sm font-medium transition-colors ${
                   isActive 
-                    ? 'bg-amber-600/10 text-amber-500 border-r-2 border-amber-500' 
+                    ? 'bg-brand-800/10 text-brand-600 border-r-2 border-brand-600' 
                     : 'hover:bg-stone-800 hover:text-white'
                 }`}
               >
@@ -51,7 +51,7 @@ export function AdminLayout() {
 
         <div className="p-4 border-t border-stone-800">
           <div className="flex items-center mb-4">
-            <div className="h-8 w-8 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold">
+            <div className="h-8 w-8 rounded-full bg-brand-800 flex items-center justify-center text-white font-bold">
               {user?.nombre?.charAt(0) || 'A'}
             </div>
             <div className="ml-3">

@@ -5,6 +5,8 @@ import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
 
+import { SEO } from '../../components/SEO';
+
 export function ProductoDetallePage() {
   const { slug } = useParams();
   const [producto, setProducto] = useState<any>(null);
@@ -26,10 +28,16 @@ export function ProductoDetallePage() {
 
   return (
     <div className="animate-fade-in space-y-8">
+      <SEO 
+        title={producto.nombre} 
+        description={producto.descripcion || `Consultá el precio y detalles de ${producto.nombre} en Matilde Mercería.`}
+        image={producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : undefined}
+        type="product"
+      />
       <nav className="flex items-center space-x-2 text-sm text-stone-500">
-        <Link to="/" className="hover:text-amber-600 transition-colors">Inicio</Link>
+        <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>
         <ChevronRight size={16} />
-        <Link to={`/categorias/${producto.categoriaSlug}`} className="hover:text-amber-600 transition-colors">{producto.categoria}</Link>
+        <Link to={`/categorias/${producto.categoriaSlug}`} className="text-brand-800 transition-colors">{producto.categoria}</Link>
         <ChevronRight size={16} />
         <span className="text-stone-900 font-medium truncate">{producto.nombre}</span>
       </nav>
@@ -49,7 +57,7 @@ export function ProductoDetallePage() {
 
         <div className="space-y-8 flex flex-col justify-center">
           <div>
-            <p className="text-sm font-medium text-amber-600 mb-2">{producto.categoria}</p>
+            <p className="text-sm font-medium text-brand-800 mb-2">{producto.categoria}</p>
             <h1 className="text-3xl md:text-4xl font-bold text-stone-900 font-outfit leading-tight mb-4">
               {producto.nombre}
             </h1>

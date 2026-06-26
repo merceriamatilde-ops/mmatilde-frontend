@@ -50,18 +50,18 @@ function PricesModal({ product, onClose }: { product: any, onClose: () => void }
             </div>
             <div className="flex justify-between items-center py-2 border-b border-stone-50">
               <span className="text-stone-600">Minorista (+70%)</span>
-              <span className="font-bold text-amber-600 text-lg">{formatPrice(price70)}</span>
+              <span className="font-bold text-brand-800 text-lg">{formatPrice(price70)}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-stone-50">
               <span className="text-stone-600">Minorista (+115%)</span>
-              <span className="font-bold text-amber-600 text-lg">{formatPrice(price115)}</span>
+              <span className="font-bold text-brand-800 text-lg">{formatPrice(price115)}</span>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="bg-stone-50 rounded-xl p-4 border border-stone-100">
               <h4 className="font-medium text-stone-900 mb-3 flex items-center gap-2">
-                <Calculator size={16} className="text-amber-500" />
+                <Calculator size={16} className="text-brand-600" />
                 Calculadora Personalizada
               </h4>
               <div className="flex items-end gap-3">
@@ -219,7 +219,7 @@ export function ProductosTable({ items, total, page, totalPages, onPageChange, o
                   <div className="flex flex-col gap-1">
                     <button 
                       onClick={() => setSelectedProductForPrices(item)}
-                      className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1 w-fit group font-medium"
+                      className="text-xs text-brand-800 hover:text-brand-700 flex items-center gap-1 w-fit group font-medium"
                     >
                       <Calculator size={14} className="group-hover:rotate-12 transition-transform" />
                       Ver precios
@@ -232,8 +232,8 @@ export function ProductosTable({ items, total, page, totalPages, onPageChange, o
                     disabled={loadingIds.has(item.id)}
                     className={`p-1.5 rounded-full transition-colors inline-flex justify-center ${
                       item.destacado 
-                        ? 'text-amber-500 hover:bg-amber-50' 
-                        : 'text-stone-300 hover:text-amber-500 hover:bg-stone-100'
+                        ? 'text-brand-600 hover:bg-brand-50' 
+                        : 'text-stone-300 hover:text-brand-600 hover:bg-stone-100'
                     }`}
                     title={item.destacado ? "Quitar destacado" : "Destacar"}
                   >
@@ -253,7 +253,7 @@ export function ProductosTable({ items, total, page, totalPages, onPageChange, o
                   <div className="flex items-center gap-1">
                     <button 
                       onClick={() => onEdit && onEdit(item.id)}
-                      className="p-1.5 text-stone-400 hover:text-amber-600 rounded-md hover:bg-stone-100 transition-colors"
+                      className="p-1.5 text-brand-800 rounded-md hover:bg-stone-100 transition-colors"
                       title="Editar"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>

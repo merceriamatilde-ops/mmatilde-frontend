@@ -69,11 +69,11 @@ export function DashboardPage() {
         <div className="rounded-xl border border-stone-200 bg-white p-6">
           <h3 className="text-lg font-medium text-stone-900 mb-4">Acciones Rápidas</h3>
           <div className="space-y-3">
-            <Link to="/admin/sync" className="block w-full p-4 text-left rounded-lg border border-stone-200 hover:border-amber-500 hover:bg-amber-50 transition-colors">
+            <Link to="/admin/sync" className="block w-full p-4 text-left rounded-lg border border-stone-200 hover:border-brand-600 hover:bg-brand-50 transition-colors">
               <h4 className="font-medium text-stone-900">Sincronizar Productos</h4>
               <p className="text-sm text-stone-500">Importar o actualizar desde Makor</p>
             </Link>
-            <Link to="/admin/productos" className="block w-full p-4 text-left rounded-lg border border-stone-200 hover:border-amber-500 hover:bg-amber-50 transition-colors">
+            <Link to="/admin/productos" className="block w-full p-4 text-left rounded-lg border border-stone-200 hover:border-brand-600 hover:bg-brand-50 transition-colors">
               <h4 className="font-medium text-stone-900">Gestionar Catálogo</h4>
               <p className="text-sm text-stone-500">Activar o desactivar productos</p>
             </Link>

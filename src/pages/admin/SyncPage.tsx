@@ -57,7 +57,7 @@ export function SyncPage() {
                 <TableCell>{new Date(log.iniciadoEn).toLocaleString('es-AR')}</TableCell>
                 <TableCell>{getStatusBadge(log.estado)}</TableCell>
                 <TableCell className="text-right font-medium text-green-600">+{log.productosNuevos}</TableCell>
-                <TableCell className="text-right font-medium text-amber-500">+{log.productosActualizados}</TableCell>
+                <TableCell className="text-right font-medium text-brand-600">+{log.productosActualizados}</TableCell>
                 <TableCell className="text-right text-red-600">{log.errores}</TableCell>
               </TableRow>
             ))}

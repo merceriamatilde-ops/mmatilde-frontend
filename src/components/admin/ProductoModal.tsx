@@ -126,7 +126,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
               {isEditing ? 'Editar Producto' : 'Nuevo Producto'}
             </h3>
             {isMakorProduct && (
-              <p className="text-sm text-amber-600 mt-1 font-medium bg-amber-50 inline-block px-2 py-0.5 rounded">
+              <p className="text-sm text-brand-800 mt-1 font-medium bg-brand-50 inline-block px-2 py-0.5 rounded">
                 Producto sincronizado. Algunos campos están bloqueados.
               </p>
             )}
@@ -167,7 +167,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                     <select 
                       required
                       disabled={isMakorProduct}
-                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:bg-stone-50"
+                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 disabled:bg-stone-50"
                       value={formData.categoriaId}
                       onChange={handleCategoriaChange}
                     >
@@ -181,7 +181,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                     <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
                     <select 
                       disabled={isMakorProduct || subcategorias.length === 0}
-                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:bg-stone-50"
+                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 disabled:bg-stone-50"
                       value={formData.subcategoriaId}
                       onChange={e => setFormData({...formData, subcategoriaId: e.target.value})}
                     >
@@ -243,7 +243,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Descripción</label>
                   <textarea 
                     disabled={isMakorProduct}
-                    className="flex w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[100px] disabled:opacity-50 disabled:bg-stone-50"
+                    className="flex w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 min-h-[100px] disabled:opacity-50 disabled:bg-stone-50"
                     placeholder="Detalles del producto..."
                     value={formData.descripcion}
                     onChange={e => setFormData({...formData, descripcion: e.target.value})}

@@ -31,7 +31,7 @@ export function CategoriasPage() {
           <Link
             key={cat.slug}
             to={`/categorias/${cat.slug}`}
-            className="group flex flex-col items-center rounded-xl border border-stone-200 bg-white p-6 text-center transition-all hover:border-amber-500 hover:shadow-md"
+            className="group flex flex-col items-center rounded-xl border border-stone-200 bg-white p-6 text-center transition-all hover:border-brand-600 hover:shadow-md"
           >
             <div className="mb-4 text-4xl transition-transform group-hover:scale-110">
               {cat.icono || '📦'}

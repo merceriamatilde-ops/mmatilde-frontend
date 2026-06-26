@@ -9,10 +9,10 @@ export function Button({
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-50 disabled:pointer-events-none ring-offset-background';
+  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 disabled:opacity-50 disabled:pointer-events-none ring-offset-background';
   
   const variants = {
-    primary: 'bg-amber-600 text-white hover:bg-amber-700',
+    primary: 'bg-brand-800 text-white hover:bg-brand-700',
     secondary: 'bg-stone-200 text-stone-900 hover:bg-stone-300',
     outline: 'border border-stone-300 hover:bg-stone-100 text-stone-900',
     ghost: 'hover:bg-stone-100 text-stone-900',

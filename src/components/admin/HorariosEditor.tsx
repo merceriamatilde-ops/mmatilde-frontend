@@ -90,7 +90,7 @@ export function HorariosEditor({ value, onChange }: { value: string, onChange: (
                       type="checkbox" 
                       checked={grupo.dias.includes(dia)}
                       onChange={() => toggleDia(gIndex, dia)}
-                      className="rounded text-amber-600 focus:ring-amber-500"
+                      className="rounded text-brand-800 focus:ring-brand-600"
                     />
                     <span>{dia}</span>
                   </label>

@@ -42,12 +42,12 @@ export function BuscarPage() {
           <input
             type="search"
             placeholder="Buscar por nombre o código (mín. 3 letras)..."
-            className="w-full h-14 pl-12 pr-4 rounded-full border-2 border-amber-200 bg-white shadow-sm focus:border-amber-500 focus:ring-0 transition-colors text-lg"
+            className="w-full h-14 pl-12 pr-4 rounded-full border-2 border-brand-200 bg-white shadow-sm focus:border-brand-600 focus:ring-0 transition-colors text-lg"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
-          <Search className="absolute left-4 text-amber-500 h-6 w-6" />
-          <button type="submit" className="absolute right-2 h-10 px-6 rounded-full bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors">
+          <Search className="absolute left-4 text-brand-600 h-6 w-6" />
+          <button type="submit" className="absolute right-2 h-10 px-6 rounded-full bg-brand-800 text-white font-medium hover:bg-brand-700 transition-colors">
             Buscar
           </button>
         </form>
@@ -65,7 +65,7 @@ export function BuscarPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {productos.map((p) => (
               <div key={p.id} className="product-card border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow flex flex-col">
-                <Link to={`/producto/${p.slug}`} className="block h-48 bg-stone-50 flex-shrink-0">
+                <Link to={`/producto/${p.slug}`} className="block h-48 bg-white flex-shrink-0">
                   {p.imagenUrl ? (
                     <img src={p.imagenUrl} alt={p.nombre} className="w-full h-full object-contain p-4 mix-blend-multiply" />
                   ) : (
@@ -75,14 +75,14 @@ export function BuscarPage() {
                 <div className="p-4 flex flex-col flex-1">
                   <p className="text-xs text-stone-500 mb-1">{p.categoria}</p>
                   <Link to={`/producto/${p.slug}`}>
-                    <h3 className="font-medium text-stone-900 leading-tight hover:text-amber-600 transition-colors line-clamp-2">{p.nombre}</h3>
+                    <h3 className="font-medium text-brand-800 leading-tight transition-colors line-clamp-2">{p.nombre}</h3>
                   </Link>
                   <div className="mt-auto pt-4">
                     <a
                       href={whatsappUrl(p.nombre)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center w-full bg-stone-100 text-stone-900 hover:bg-amber-600 hover:text-white py-2 rounded transition-colors text-sm font-medium"
+                      className="flex items-center justify-center w-full bg-stone-100 text-stone-900 hover:bg-brand-800 hover:text-white py-2 rounded transition-colors text-sm font-medium"
                     >
                       <MessageCircle size={16} className="mr-2" />
                       Consultar

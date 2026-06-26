@@ -105,7 +105,7 @@ export function ProductosPage() {
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Categoría</label>
             <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
               value={filters.categoriaId}
               onChange={e => setFilters(prev => ({ ...prev, categoriaId: e.target.value, subcategoriaId: '' }))}
             >
@@ -119,7 +119,7 @@ export function ProductosPage() {
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
             <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50"
               value={filters.subcategoriaId}
               onChange={e => setFilters(prev => ({ ...prev, subcategoriaId: e.target.value }))}
               disabled={!filters.categoriaId || subcategorias.length === 0}
@@ -134,7 +134,7 @@ export function ProductosPage() {
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Proveedor</label>
             <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
               value={filters.proveedorId}
               onChange={e => setFilters(prev => ({ ...prev, proveedorId: e.target.value }))}
             >
@@ -147,7 +147,7 @@ export function ProductosPage() {
           <div className="w-40">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Estado</label>
             <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
               value={filters.activo}
               onChange={e => setFilters(prev => ({ ...prev, activo: e.target.value }))}
             >
@@ -161,9 +161,12 @@ export function ProductosPage() {
         </form>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12"><Spinner size={40} /></div>
-      ) : (
+      <div className="relative min-h-[400px]">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-[1px] rounded-xl">
+            <Spinner size={40} />
+          </div>
+        )}
         <ProductosTable 
           items={data.items}
           total={data.total}
@@ -173,7 +176,7 @@ export function ProductosPage() {
           onRefresh={loadData}
           onEdit={handleEditProduct}
         />
-      )}
+      </div>
 
       {modalOpen && (
         <ProductoModal 

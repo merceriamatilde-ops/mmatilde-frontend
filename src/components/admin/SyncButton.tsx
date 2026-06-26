@@ -91,12 +91,12 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete: () => void }) {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {categorias.map(c => (
-              <label key={c.id} className="flex items-center space-x-2 text-sm text-stone-600 cursor-pointer hover:text-stone-900 bg-stone-50 p-2 rounded-md border border-stone-100 hover:border-amber-200 hover:bg-amber-50 transition-colors">
+              <label key={c.id} className="flex items-center space-x-2 text-sm text-stone-600 cursor-pointer hover:text-stone-900 bg-stone-50 p-2 rounded-md border border-stone-100 hover:border-brand-200 hover:bg-brand-50 transition-colors">
                 <input 
                   type="checkbox" 
                   checked={selectedCats.includes(c.slug)} 
                   onChange={() => handleToggleCat(c.slug)}
-                  className="rounded text-amber-600 focus:ring-amber-500"
+                  className="rounded text-brand-800 focus:ring-brand-600"
                   disabled={isSyncing}
                 />
                 <span>{c.nombre}</span>

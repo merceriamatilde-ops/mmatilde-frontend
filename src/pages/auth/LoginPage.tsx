@@ -35,7 +35,7 @@ export function LoginPage() {
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-stone-900 font-outfit">
-            <span className="text-amber-600">Matilde</span> Backoffice
+            <span className="text-brand-800">Matilde</span> Backoffice
           </h2>
           <p className="mt-2 text-sm text-stone-600">Ingresá a tu cuenta para administrar el catálogo</p>
         </div>

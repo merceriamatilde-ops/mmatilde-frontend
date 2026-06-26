@@ -13,7 +13,7 @@ export function Badge({
   const variants = {
     default: 'bg-stone-100 text-stone-900',
     success: 'bg-green-100 text-green-800',
-    warning: 'bg-amber-100 text-amber-800',
+    warning: 'bg-brand-100 text-brand-800',
     danger: 'bg-red-100 text-red-800'
   };
   

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Menu, Search } from 'lucide-react';
 import { whatsappUrl } from '../../lib/utils';
 import { api } from '../../api/client';
+import { Logo } from '../ui/Logo';
+import { MobileMenu } from '../ui/MobileMenu';
 
 export function CatalogoLayout() {
   const [config, setConfig] = useState<Record<string, string>>({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     // Config fetch on load
@@ -76,22 +79,63 @@ export function CatalogoLayout() {
   const whatsappPhone = config.whatsapp || '+5493435190082';
 
   return (
-    <div className="flex min-h-screen flex-col bg-stone-50 font-sans">
+    <div className="flex min-h-screen flex-col bg-white font-sans">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold tracking-tight text-stone-900 font-outfit">
-              <span className="text-amber-600">{config.nombre_negocio ? config.nombre_negocio.split(' ')[0] : 'Matilde'}</span> {config.nombre_negocio ? config.nombre_negocio.split(' ').slice(1).join(' ') : 'Mercería'}
-            </span>
+      <header className="sticky top-0 z-50 w-full border-b border-stone-100 bg-white shadow-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl gap-4">
+          
+          {/* Logo (Left) */}
+          <Link to="/" className="flex items-center shrink-0" onClick={() => setIsMenuOpen(false)}>
+            <Logo className="h-10 sm:h-12 w-auto object-contain text-brand-800" />
           </Link>
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link to="/" className="text-stone-600 transition-colors hover:text-amber-600">Inicio</Link>
-            <Link to="/categorias" className="text-stone-600 transition-colors hover:text-amber-600">Categorías</Link>
-            <Link to="/buscar" className="text-stone-600 transition-colors hover:text-amber-600">Buscar</Link>
-          </nav>
+
+          {/* Search (Center on Desktop, Hidden on Mobile) */}
+          <div className="hidden md:flex flex-1 max-w-xl mx-8">
+            <form action="/buscar" method="get" className="relative w-full">
+              <input 
+                type="text" 
+                name="q"
+                placeholder="Buscar productos..."
+                className="w-full bg-stone-100 border-transparent focus:bg-white focus:border-brand-600 focus:ring-2 focus:ring-brand-200 rounded-full py-2 pl-4 pr-10 text-sm"
+              />
+              <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-brand-800 transition-colors">
+                <Search className="w-5 h-5" />
+              </button>
+            </form>
+          </div>
+
+          {/* Desktop Nav & Mobile Icons (Right) */}
+          <div className="flex items-center space-x-1 sm:space-x-4">
+            
+            {/* Desktop Links */}
+            <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+              <Link to="/categorias" className="text-stone-700 hover:text-brand-800 transition-colors">Categorías</Link>
+            </nav>
+
+            {/* Mobile Search Icon */}
+            <Link 
+              to="/buscar" 
+              className="md:hidden p-2 text-brand-800 rounded-full hover:bg-brand-50 transition-colors"
+            >
+              <Search className="w-6 h-6" />
+            </Link>
+            
+            {/* Mobile Hamburger Icon */}
+            <button 
+              onClick={() => setIsMenuOpen(true)}
+              className="md:hidden p-2 text-brand-800 rounded-full hover:bg-brand-50 transition-colors"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </header>
+
+      <MobileMenu 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        config={config} 
+      />
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-8 max-w-7xl">
