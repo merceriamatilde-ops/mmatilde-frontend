@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { AuthProvider } from './hooks/useAuth';
+import { Analytics } from '@vercel/analytics/react';
 
 // Layouts
 import { CatalogoLayout } from './components/layout/CatalogoLayout';
@@ -52,6 +53,7 @@ function App() {
           </Route>
         </Routes>
         <Toaster position="top-right" richColors />
+        <Analytics />
       </AuthProvider>
     </BrowserRouter>
   );
