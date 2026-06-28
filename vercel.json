@@ -5,6 +5,10 @@
       "destination": "https://api.merceriamatilde.com/api/:path*"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "https://api.merceriamatilde.com/api/seo/sitemap"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
