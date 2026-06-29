@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette } from 'lucide-react';
 
 export function AdminLayout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -13,12 +13,13 @@ export function AdminLayout() {
   }
 
   const navItems = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/productos', label: 'Productos', icon: Package },
-    { href: '/admin/categorias', label: 'Categorías', icon: FolderTree },
-    { href: '/admin/precios', label: 'Precios', icon: Tags },
-    { href: '/admin/sync', label: 'Sincronización Makor', icon: RefreshCw },
-    { href: '/admin/configuracion', label: 'Configuración', icon: Settings },
+    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/productos', label: 'Productos', icon: Package },
+    { href: '/categorias', label: 'Categorías', icon: FolderTree },
+    { href: '/colores', label: 'Colores', icon: Palette },
+    { href: '/precios', label: 'Precios', icon: Tags },
+    { href: '/sync', label: 'Sincronización Makor', icon: RefreshCw },
+    { href: '/configuracion', label: 'Configuración', icon: Settings },
   ];
 
   return (

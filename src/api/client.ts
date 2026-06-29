@@ -40,7 +40,8 @@ export const api = {
   
   // Categorias (Public)
   getCategorias: () => apiFetch<any>('/categorias'),
-  getCategoriaProductos: (slug: string) => apiFetch<any>(`/categorias/${slug}/productos`),
+  getCategoriaProductos: (slug: string, sub?: string) => 
+    apiFetch<any>(`/categorias/${slug}/productos${sub ? `?sub=${encodeURIComponent(sub)}` : ''}`),
 
   // Categorias (Admin)
   getCategoriasAdmin: () => apiFetch<any>('/categorias/admin'),
@@ -85,5 +86,17 @@ export const api = {
   getSyncLogs: () => apiFetch<any>('/sync/logs'),
   getConfiguracion: () => apiFetch<any>('/configuracion'),
   updateConfiguracion: (values: Record<string, string>) => apiFetch('/configuracion', { method: 'PUT', body: JSON.stringify({ values }) }),
-  getAllCategorias: () => apiFetch<any>('/categorias?includeEmpty=true')
+  getAllCategorias: () => apiFetch<any>('/categorias?includeEmpty=true'),
+  
+  // Colores
+  getColores: () => apiFetch<any[]>('/colores'),
+  createColor: (data: any) => apiFetch<any>('/colores', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateColor: (id: number, data: any) => apiFetch<any>(`/colores/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteColor: (id: number) => apiFetch<any>(`/colores/${id}`, { method: 'DELETE' }),
 };

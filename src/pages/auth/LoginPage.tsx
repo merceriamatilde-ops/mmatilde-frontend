@@ -13,7 +13,7 @@ export function LoginPage() {
   const navigate = useNavigate();
 
   if (isAuthenticated) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +22,7 @@ export function LoginPage() {
     try {
       await login({ email, password });
       toast.success('Sesión iniciada correctamente');
-      navigate('/admin');
+      navigate('/');
     } catch (error) {
       toast.error('Credenciales inválidas o error de conexión');
     } finally {
