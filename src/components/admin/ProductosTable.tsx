@@ -27,8 +27,8 @@ function PricesModal({ product, onClose }: { product: any, onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center p-6 border-b border-stone-100">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center p-6 border-b border-stone-100 flex-shrink-0">
           <div>
             <h3 className="text-xl font-bold font-outfit text-stone-900">Calculadora de Precios</h3>
             <p className="text-sm text-stone-500 mt-1 line-clamp-1">{product.nombre}</p>
@@ -38,7 +38,7 @@ function PricesModal({ product, onClose }: { product: any, onClose: () => void }
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           <div className="space-y-3">
             <div className="flex justify-between items-center py-2 border-b border-stone-50">
               <span className="text-stone-600">Precio Base (Makor)</span>
@@ -114,7 +114,7 @@ function PricesModal({ product, onClose }: { product: any, onClose: () => void }
           </div>
         </div>
 
-        <div className="p-4 bg-stone-50 border-t border-stone-100 flex justify-end">
+        <div className="p-4 bg-stone-50 border-t border-stone-100 flex justify-end flex-shrink-0">
           <Button variant="outline" onClick={onClose}>Cerrar</Button>
         </div>
       </div>
