@@ -97,7 +97,7 @@ export function CategoriaDetallePage() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        {productos.map((p) => (
+        {productos.map((p: any) => (
           <div key={p.id} className="product-card border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow flex flex-col">
             <Link to={`/producto/${p.slug}`} className="block h-48 bg-white flex-shrink-0">
               {p.imagenUrl ? (
