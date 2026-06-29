@@ -22,7 +22,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 // Pages - Admin
 import { DashboardPage } from './pages/admin/DashboardPage';
 import { ProductosPage } from './pages/admin/ProductosPage';
-import { CategoriasAdminPage } from './pages/admin/CategoriasAdminPage';
+import { CategoriasPage as AdminCategoriasPage } from './pages/admin/CategoriasPage';
 import { PreciosPage } from './pages/admin/PreciosPage';
 import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
@@ -47,7 +47,7 @@ function App() {
                 <Route path="/" element={<AdminLayout />}>
                   <Route index element={<DashboardPage />} />
                   <Route path="productos" element={<ProductosPage />} />
-                  <Route path="categorias" element={<CategoriasAdminPage />} />
+                  <Route path="categorias" element={<AdminCategoriasPage />} />
                   <Route path="precios" element={<PreciosPage />} />
                   <Route path="colores" element={<ColoresPage />} />
                   <Route path="sync" element={<SyncPage />} />
