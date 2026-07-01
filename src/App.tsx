@@ -36,11 +36,18 @@ import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
 import { ColoresPage } from './pages/admin/ColoresPage';
 
+// Pages - IA
+import { EstimadorIAPage } from './pages/ia/EstimadorIAPage';
+
 function App() {
   const isBackoffice = useMemo(() => {
     const hostname = window.location.hostname;
-    // Identificar si es el subdominio backoffice (bo.*) o si se está forzando por local
     return hostname.startsWith('bo.');
+  }, []);
+
+  const isIaSubdomain = useMemo(() => {
+    const hostname = window.location.hostname;
+    return hostname.startsWith('ia.');
   }, []);
 
   return (
@@ -49,7 +56,13 @@ function App() {
         <AuthProvider>
           <RouteTracker />
           <Routes>
-            {isBackoffice ? (
+            {isIaSubdomain ? (
+              // --- IA ROUTES ---
+              <>
+                <Route path="/" element={<EstimadorIAPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </>
+            ) : isBackoffice ? (
               // --- BACKOFFICE ROUTES ---
               <>
                 <Route path="/login" element={<LoginPage />} />
