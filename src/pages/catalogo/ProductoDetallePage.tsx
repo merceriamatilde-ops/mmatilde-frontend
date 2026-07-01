@@ -4,7 +4,7 @@ import { MessageCircle, ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
-import { track } from '@vercel/analytics';
+import ReactGA from 'react-ga4';
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
@@ -148,7 +148,7 @@ export function ProductoDetallePage() {
               href={whatsappUrl(producto.nombre)}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => track('Consultar_WhatsApp', { producto: producto.nombre, categoria: producto.categoria?.nombre || 'Desconocida' })}
+              onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Producto', label: producto.nombre })}
               className="inline-flex w-full md:w-auto items-center justify-center rounded-md bg-[#25D366] px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-[#20bd5a] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
             >
               <MessageCircle className="mr-3" size={24} />

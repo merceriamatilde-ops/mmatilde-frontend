@@ -5,7 +5,7 @@ import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
 import { HeroBanner } from '../../components/ui/HeroBanner';
-import { track } from '@vercel/analytics';
+import ReactGA from 'react-ga4';
 import { SEO } from '../../components/SEO';
 
 export function HomePage() {
@@ -75,7 +75,7 @@ export function HomePage() {
                       href={whatsappUrl(p.nombre)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => track('Consultar_WhatsApp', { producto: p.nombre, categoria: p.categoria || 'Desconocida' })}
+                      onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Home', label: p.nombre })}
                       className="flex items-center justify-center w-full bg-stone-100 text-stone-900 hover:bg-brand-800 hover:text-white py-2 rounded transition-colors text-sm font-medium"
                     >
                       <MessageCircle size={16} className="mr-2" />

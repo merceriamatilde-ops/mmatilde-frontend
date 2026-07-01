@@ -5,7 +5,7 @@ import { whatsappUrl } from '../../lib/utils';
 import { api } from '../../api/client';
 import { Logo } from '../ui/Logo';
 import { MobileMenu } from '../ui/MobileMenu';
-import { track } from '@vercel/analytics';
+import ReactGA from 'react-ga4';
 
 export function CatalogoLayout() {
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -167,12 +167,12 @@ export function CatalogoLayout() {
             <h3 className="mb-4 text-lg font-semibold text-stone-900 font-outfit">Redes Sociales</h3>
             <div className="flex space-x-4">
               {config.facebook_url && (
-                <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" onClick={() => track('Click_Redes_Sociales', { red: 'Facebook' })} className="text-stone-400 hover:text-blue-600 transition-colors" title="Facebook">
+                <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Facebook' })} className="text-stone-400 hover:text-blue-600 transition-colors" title="Facebook">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
                 </a>
               )}
               {config.instagram_url && (
-                <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" onClick={() => track('Click_Redes_Sociales', { red: 'Instagram' })} className="text-stone-400 hover:text-pink-600 transition-colors" title="Instagram">
+                <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Instagram' })} className="text-stone-400 hover:text-pink-600 transition-colors" title="Instagram">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                 </a>
               )}
@@ -192,7 +192,7 @@ export function CatalogoLayout() {
         href={whatsappUrl(undefined, whatsappPhone)}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => track('Consultar_WhatsApp', { origen: 'Boton_Flotante_FAB' })}
+        onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_FAB' })}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
         aria-label="Contactar por WhatsApp"
       >

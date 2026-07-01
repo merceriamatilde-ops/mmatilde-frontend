@@ -1,10 +1,18 @@
 import React, { useMemo } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { HelmetProvider } from 'react-helmet-async';
-import { Analytics } from '@vercel/analytics/react';
+import ReactGA from 'react-ga4';
 
 import { AuthProvider } from './hooks/useAuth';
+
+function RouteTracker() {
+  const location = useLocation();
+  React.useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
+  }, [location]);
+  return null;
+}
 
 // Layouts
 import { CatalogoLayout } from './components/layout/CatalogoLayout';
@@ -39,6 +47,7 @@ function App() {
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
+          <RouteTracker />
           <Routes>
             {isBackoffice ? (
               // --- BACKOFFICE ROUTES ---
@@ -71,7 +80,6 @@ function App() {
           </Routes>
         </AuthProvider>
         <Toaster position="top-right" richColors />
-        <Analytics />
       </BrowserRouter>
     </HelmetProvider>
   );
