@@ -80,6 +80,7 @@ function App() {
             ) : (
               // --- PUBLIC CATALOG ROUTES ---
               <>
+                <Route path="/asistente" element={<EstimadorIAPage />} />
                 <Route path="/" element={<CatalogoLayout />}>
                   <Route index element={<HomePage />} />
                   <Route path="categorias" element={<CategoriasPage />} />

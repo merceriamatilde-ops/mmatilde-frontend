@@ -1,196 +1,767 @@
-import React, { useState } from 'react';
-import { Camera, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Camera,
+  Sparkles,
+  ChevronRight,
+  MessageCircle,
+  RotateCcw,
+  CheckCircle2,
+  Loader2,
+  ImagePlus,
+  X,
+} from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
+import ReactGA from 'react-ga4';
+import {
+  consultarIA,
+  type ConsultaContexto,
+  type ConsultaResponse,
+  type PreguntaIA,
+  type ProgresoConsulta,
+} from '../../api/iaClient';
+import { api } from '../../api/client';
+import { compressImageForUpload } from '../../lib/imageCompress';
+import {
+  getStoreUrl,
+  getProductUrl,
+  buildWhatsAppMaterialesUrl,
+} from '../../lib/storeUrl';
+
+type Paso = 'inicio' | 'refinando' | 'resultado';
+
+const SESSION_KEY = 'matilde_ia_session';
+
+const MENSAJES_SIN_DATOS = [
+  'Si no me das información, no puedo recomendarte nada — ¡ni yo soy adivina!',
+  '¡Ey! Sin datos no hay magia con la lana 🧶 Contame un poquito tu proyecto.',
+  'Estoy muy buena con las lanas, pero adivinar no es lo mío. ¿Qué querés hacer?',
+  'Mirá, sin al menos una pista no te puedo armar la lista de materiales 😊',
+];
+
+function mensajeSinDatos(): string {
+  return MENSAJES_SIN_DATOS[Math.floor(Math.random() * MENSAJES_SIN_DATOS.length)];
+}
+
+function hayContextoMinimo(ctx: ConsultaContexto, tieneImagen: boolean): boolean {
+  return Boolean(
+    ctx.descripcion_inicial.trim()
+    || tieneImagen
+    || ctx.respuestas.length > 0
+    || ctx.notas_adicionales.length > 0,
+  );
+}
+
+interface SessionData {
+  paso: Paso;
+  descripcion: string;
+  contexto: ConsultaContexto;
+  respuesta: ConsultaResponse | null;
+}
+
+function loadSession(): Partial<SessionData> | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(data: Partial<SessionData>) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
+function tituloRefinamiento(progreso: ProgresoConsulta): string {
+  if (progreso.ultimo_paso) return '¡Ya casi! Falta poco';
+  if (progreso.pasos_restantes >= 2) return 'Necesitamos algunos datos más';
+  return 'Confirmemos los detalles';
+}
+
+function porcentajeProgreso(progreso: ProgresoConsulta): number {
+  const c = progreso.confirmado.length;
+  const f = progreso.falta.length;
+  if (c + f === 0) return 25;
+  return Math.round((c / (c + f)) * 100);
+}
 
 export function EstimadorIAPage() {
+  const [paso, setPaso] = useState<Paso>('inicio');
+  const [descripcion, setDescripcion] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [description, setDescription] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [contexto, setContexto] = useState<ConsultaContexto>({
+    descripcion_inicial: '',
+    respuestas: [],
+    notas_adicionales: [],
+  });
+  const [respuesta, setRespuesta] = useState<ConsultaResponse | null>(null);
+  const [seleccionActual, setSeleccionActual] = useState<Record<string, string>>({});
+  const [notaExtra, setNotaExtra] = useState('');
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [whatsapp, setWhatsapp] = useState('+5493435190082');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    api.getConfiguracion().then((cfg) => {
+      if (cfg.whatsapp) setWhatsapp(cfg.whatsapp);
+    }).catch(() => {});
+
+    const saved = loadSession();
+    if (saved?.paso && saved.paso !== 'inicio') {
+      if (saved.descripcion) setDescripcion(saved.descripcion);
+      if (saved.contexto) setContexto(saved.contexto);
+      if (saved.respuesta) setRespuesta(saved.respuesta);
+      if (saved.paso === 'resultado' && saved.respuesta?.estado === 'listo') {
+        setPaso('resultado');
+      } else if (saved.respuesta) {
+        setPaso('refinando');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    saveSession({ paso, descripcion, contexto, respuesta });
+  }, [paso, descripcion, contexto, respuesta]);
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
-    }
-  };
-
-  const [resultado, setResultado] = useState<{tecnica: string, insumos: string[]} | null>(null);
-
-  const handleAnalyze = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!imagePreview && !description) return;
-    
-    setIsAnalyzing(true);
-    setResultado(null);
-    
+    if (!file) return;
+    setError(null);
     try {
-      const formData = new FormData();
-      formData.append('descripcion', description);
-      
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        formData.append('imagen', fileInput.files[0]);
-      }
-
-      const response = await fetch('http://localhost:8000/api/estimar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al procesar la solicitud con la IA');
-      }
-
-      const data = await response.json();
-      setResultado({
-        tecnica: data.tecnica_detectada,
-        insumos: data.insumos_teoricos
-      });
-    } catch (error) {
-      console.error(error);
-      alert("Hubo un error al conectar con la IA. Verificá que el backend esté corriendo.");
-    } finally {
-      setIsAnalyzing(false);
+      const compressed = await compressImageForUpload(file);
+      setImageFile(compressed);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch {
+      setError('No pudimos procesar la foto. Probá con otra imagen.');
     }
   };
+
+  const quitarImagen = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const llamarIA = async (
+    ctx: ConsultaContexto,
+    img: File | null,
+  ): Promise<ConsultaResponse> => {
+    setCargando(true);
+    setError(null);
+    try {
+      const result = await consultarIA(ctx, img);
+      setRespuesta(result);
+      setSeleccionActual({});
+
+      if (result.estado === 'listo') {
+        setPaso('resultado');
+        ReactGA.event({ category: 'IA', action: 'Resultado_Completo' });
+      } else {
+        setPaso('refinando');
+        ReactGA.event({ category: 'IA', action: 'Refinamiento' });
+      }
+      return result;
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.name === 'AbortError'
+          ? 'La consulta tardó demasiado. Revisá tu conexión e intentá de nuevo.'
+          : err instanceof Error
+            ? err.message
+            : 'Hubo un problema técnico. Intentá de nuevo en unos segundos.';
+      setError(msg);
+      throw err;
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const analizarProyecto = async () => {
+    if (!descripcion.trim() && !imageFile) {
+      setError('Contanos qué querés hacer o subí una foto de referencia.');
+      return;
+    }
+    const ctx: ConsultaContexto = {
+      descripcion_inicial: descripcion.trim(),
+      respuestas: [],
+      notas_adicionales: [],
+      paso_refinamiento: 0,
+    };
+    setContexto(ctx);
+    ReactGA.event({ category: 'IA', action: 'Analizar_Inicio', label: imageFile ? 'con_foto' : 'solo_texto' });
+    try {
+      await llamarIA(ctx, imageFile);
+    } catch {
+      /* error ya mostrado en pantalla */
+    }
+  };
+
+  const confirmarRespuestas = async (forzarAproximado = false) => {
+    if (!respuesta) return;
+
+    const haySeleccion = Object.keys(seleccionActual).length > 0;
+    const hayNota = notaExtra.trim().length > 0;
+    const hayAlgoNuevo = haySeleccion || hayNota;
+
+    if (!hayAlgoNuevo && !forzarAproximado) {
+      if (!hayContextoMinimo(contexto, Boolean(imageFile))) {
+        setError(mensajeSinDatos());
+        return;
+      }
+      forzarAproximado = true;
+    }
+
+    const nuevasRespuestas = [...contexto.respuestas];
+    for (const pregunta of respuesta.preguntas) {
+      const valor = seleccionActual[pregunta.id];
+      if (valor) {
+        nuevasRespuestas.push({
+          id: pregunta.id,
+          pregunta: pregunta.pregunta,
+          respuesta: valor,
+        });
+      }
+    }
+
+    const notas = [...contexto.notas_adicionales];
+    if (notaExtra.trim()) notas.push(notaExtra.trim());
+
+    const todasRespondidas = respuesta.preguntas.length === 0
+      || respuesta.preguntas.every((p) => seleccionActual[p.id]);
+    const aceptaAproximado = forzarAproximado
+      || (respuesta.preguntas.length > 0 && !todasRespondidas);
+
+    const ctx: ConsultaContexto = {
+      ...contexto,
+      respuestas: nuevasRespuestas,
+      notas_adicionales: notas,
+      paso_refinamiento: (contexto.paso_refinamiento ?? 0) + 1,
+      acepta_aproximado: aceptaAproximado,
+    };
+    setContexto(ctx);
+    setNotaExtra('');
+    try {
+      await llamarIA(ctx, imageFile);
+    } catch {
+      /* error ya mostrado en pantalla */
+    }
+  };
+
+  const reiniciar = () => {
+    setPaso('inicio');
+    setDescripcion('');
+    setContexto({ descripcion_inicial: '', respuestas: [], notas_adicionales: [] });
+    setRespuesta(null);
+    setSeleccionActual({});
+    setNotaExtra('');
+    setError(null);
+    quitarImagen();
+    sessionStorage.removeItem(SESSION_KEY);
+    ReactGA.event({ category: 'IA', action: 'Nuevo_Proyecto' });
+  };
+
+  const storeUrl = getStoreUrl();
+  const pasoNumero = paso === 'inicio' ? 1 : paso === 'refinando' ? 2 : 3;
+  const progreso = respuesta?.progreso;
 
   return (
-    <div className="min-h-screen bg-stone-900 text-stone-100 font-sans selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans flex flex-col">
       <Helmet>
-        <title>Estimador IA | Mercería Matilde</title>
+        <title>Asistente de Materiales | Mercería Matilde</title>
+        <meta name="description" content="Subí una foto o contanos tu proyecto y te ayudamos a calcular los materiales que necesitás." />
       </Helmet>
 
       {/* Header */}
-      <header className="border-b border-stone-800 bg-stone-950/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-6 h-6 text-brand-400" />
-            <span className="font-outfit font-bold text-xl tracking-tight text-white">Matilde<span className="text-brand-400">.IA</span></span>
+      <header className="border-b border-stone-200 bg-white sticky top-0 z-50 shrink-0 shadow-sm">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-brand-600" aria-hidden />
+            <span className="font-outfit font-bold text-lg text-brand-800">
+              Matilde<span className="text-brand-500">.IA</span>
+            </span>
           </div>
-          <a href="/" className="text-sm font-medium text-stone-400 hover:text-white transition-colors">
-            Volver a la tienda
+          <a
+            href={storeUrl}
+            className="text-sm font-medium text-brand-700 hover:text-brand-900 underline-offset-2 hover:underline"
+          >
+            Ir a la tienda
           </a>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-3xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold font-outfit mb-4 text-white">
-            Estimá tus materiales <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-pink-500">con IA</span>
-          </h1>
-          <p className="text-lg text-stone-400 max-w-xl mx-auto">
-            Subí una foto del proyecto que querés hacer o describilo en texto. Nuestra inteligencia artificial calculará los insumos exactos que necesitás.
-          </p>
-        </div>
-
-        <form onSubmit={handleAnalyze} className="bg-stone-800/50 border border-stone-700/50 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur-sm">
-          
-          {/* Image Upload Area */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-stone-300 mb-2">Foto de referencia (Opcional pero recomendada)</label>
-            <div className="relative group">
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleImageChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              <div className={`border-2 border-dashed rounded-xl overflow-hidden transition-all flex flex-col items-center justify-center min-h-[200px]
-                ${imagePreview ? 'border-brand-500 bg-stone-900' : 'border-stone-600 bg-stone-800/80 group-hover:border-stone-400'}`}>
-                
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover max-h-[400px]" />
-                ) : (
-                  <div className="text-center p-6">
-                    <div className="bg-stone-700/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-stone-600 transition-colors">
-                      <Camera className="w-8 h-8 text-stone-400 group-hover:text-stone-300" />
-                    </div>
-                    <p className="text-stone-300 font-medium">Tocá para subir una foto</p>
-                    <p className="text-stone-500 text-sm mt-1">Formatos JPG o PNG.</p>
+      {/* Progress */}
+      <div className="bg-white border-b border-stone-100 py-3 shrink-0">
+        <div className="max-w-lg mx-auto px-4">
+          <div className="flex items-center justify-between text-sm">
+            {(['Tu proyecto', 'Detalles', 'Materiales'] as const).map((label, i) => {
+              const n = i + 1;
+              const activo = pasoNumero >= n;
+              const actual = pasoNumero === n;
+              return (
+                <div key={label} className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mb-1 transition-colors ${
+                      actual
+                        ? 'bg-brand-600 text-white ring-4 ring-brand-100'
+                        : activo
+                          ? 'bg-brand-600 text-white'
+                          : 'bg-stone-200 text-stone-500'
+                    }`}
+                  >
+                    {activo && pasoNumero > n ? <CheckCircle2 size={18} /> : n}
                   </div>
-                )}
+                  <span className={`text-xs text-center ${actual ? 'font-semibold text-brand-800' : 'text-stone-500'}`}>
+                    {label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {paso === 'refinando' && progreso && (
+            <div className="mt-3">
+              <div className="flex justify-between text-xs text-stone-500 mb-1">
+                <span>
+                  {progreso.ultimo_paso
+                    ? 'Con esto ya calculamos los materiales'
+                    : `Aprox. ${progreso.pasos_restantes} paso${progreso.pasos_restantes > 1 ? 's' : ''} más`}
+                </span>
+                <span>{porcentajeProgreso(progreso)}%</span>
+              </div>
+              <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand-500 rounded-full transition-all duration-500"
+                  style={{ width: `${porcentajeProgreso(progreso)}%` }}
+                />
               </div>
             </div>
+          )}
+        </div>
+      </div>
+
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 pb-28">
+        {/* Error banner */}
+        {error && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 text-base" role="alert">
+            {error}
           </div>
+        )}
 
-          {/* Description Area */}
-          <div className="mb-8">
-            <label htmlFor="description" className="block text-sm font-medium text-stone-300 mb-2">
-              ¿Qué querés hacer? ¿Tenés detalles específicos?
-            </label>
-            <textarea 
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej: Quiero tejer un chaleco talle M para mujer, a dos agujas."
-              className="w-full bg-stone-900 border border-stone-700 rounded-xl p-4 text-white placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none min-h-[120px]"
-            />
-          </div>
-
-          {/* Warning */}
-          <div className="flex items-start bg-blue-900/20 border border-blue-800/30 rounded-lg p-4 mb-8 text-sm text-blue-200">
-            <AlertCircle className="w-5 h-5 text-blue-400 mr-3 flex-shrink-0 mt-0.5" />
-            <p>
-              El cálculo es una <strong>estimación teórica</strong> generada por Inteligencia Artificial y puede variar según la tensión del tejido, el grosor real del material y la técnica utilizada.
-            </p>
-          </div>
-
-          {/* Submit Button */}
-          <button 
-            type="submit" 
-            disabled={isAnalyzing || (!imagePreview && !description)}
-            className="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-bold text-lg py-4 px-6 rounded-xl shadow-lg shadow-brand-900/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {isAnalyzing ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Analizando el proyecto...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Estimar Insumos con IA
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Results Area */}
-        {resultado && (
-          <div className="mt-8 bg-stone-800/80 border border-brand-500/50 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center mb-6">
-              <Sparkles className="w-6 h-6 text-brand-400 mr-3" />
-              <h2 className="text-2xl font-bold font-outfit text-white">Resultados de la IA</h2>
-            </div>
-            
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-wider mb-2">Técnica Detectada</h3>
-              <p className="text-lg text-white font-medium bg-stone-900 inline-block px-4 py-2 rounded-lg border border-stone-700">
-                {resultado.tecnica}
+        {/* PASO 1: Inicio */}
+        {paso === 'inicio' && (
+          <div className="space-y-6 animate-fade-in">
+            <div>
+              <h1 className="text-2xl font-bold font-outfit text-stone-900 leading-tight">
+                ¿Qué proyecto tenés en mente?
+              </h1>
+              <p className="mt-2 text-base text-stone-600 leading-relaxed">
+                Subí una foto o contanos con tus palabras. Te ayudamos a calcular los materiales y te mostramos productos de nuestra tienda.
               </p>
             </div>
 
+            {/* Foto */}
             <div>
-              <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-wider mb-3">Insumos Teóricos Necesarios</h3>
+              <label className="block text-sm font-semibold text-stone-700 mb-2">
+                Foto de referencia <span className="font-normal text-stone-400">(opcional)</span>
+              </label>
+              {imagePreview ? (
+                <div className="relative rounded-2xl overflow-hidden border-2 border-brand-200">
+                  <img src={imagePreview} alt="Tu referencia" className="w-full max-h-56 object-cover" />
+                  <button
+                    type="button"
+                    onClick={quitarImagen}
+                    className="absolute top-3 right-3 bg-white/90 text-stone-700 rounded-full p-2 shadow-md hover:bg-white"
+                    aria-label="Quitar foto"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-3 py-10 rounded-2xl border-2 border-dashed border-brand-300 bg-brand-50/50 hover:bg-brand-50 active:bg-brand-100 transition-colors"
+                >
+                  <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center">
+                    <Camera size={28} className="text-brand-600" />
+                  </div>
+                  <span className="text-base font-semibold text-brand-800">Sacar o elegir foto</span>
+                  <span className="text-sm text-stone-500">De un modelo, revista o tu proyecto</span>
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+            </div>
+
+            {/* Descripción */}
+            <div>
+              <label htmlFor="descripcion" className="block text-sm font-semibold text-stone-700 mb-2">
+                Contanos tu proyecto
+              </label>
+              <textarea
+                id="descripcion"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Ej: Quiero tejer un chaleco para mi nieto de 1 año con lana suave"
+                rows={4}
+                className="w-full text-base leading-relaxed rounded-2xl border-2 border-stone-200 bg-white px-4 py-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none placeholder:text-stone-400"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={analizarProyecto}
+              disabled={cargando || (!descripcion.trim() && !imageFile)}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-600 text-white text-lg font-semibold hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+            >
+              {cargando ? (
+                <>
+                  <Loader2 size={22} className="animate-spin" />
+                  Analizando...
+                </>
+              ) : (
+                <>
+                  Analizar mi proyecto
+                  <ChevronRight size={22} />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* PASO 2: Refinamiento con chips */}
+        {paso === 'refinando' && respuesta && (
+          <div className="space-y-5 animate-fade-in">
+            <div>
+              <h1 className="text-xl font-bold font-outfit text-stone-900">
+                {tituloRefinamiento(respuesta.progreso)}
+              </h1>
+              {respuesta.progreso.falta.length > 0 && (
+                <p className="mt-1 text-sm text-stone-600 leading-relaxed">
+                  Para calcular materiales necesitamos:{' '}
+                  <span className="font-medium text-stone-800">{respuesta.progreso.falta.join(' · ')}</span>
+                </p>
+              )}
+            </div>
+
+            <ProgresoChecklist progreso={respuesta.progreso} />
+
+            <MensajeAsistente texto={respuesta.mensaje} />
+
+            {respuesta.resumen.proyecto && (
+              <ResumenCard resumen={respuesta.resumen} imagen={imagePreview} />
+            )}
+
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <label htmlFor="nota-extra" className="block text-sm font-semibold text-amber-900 mb-1">
+                Escribilo con tus palabras
+              </label>
+              <p className="text-xs text-amber-800/80 mb-2">
+                Todo es opcional. Completá solo lo que sepas — con una frase alcanza.
+              </p>
+              <input
+                id="nota-extra"
+                type="text"
+                value={notaExtra}
+                onChange={(e) => { setNotaExtra(e.target.value); setError(null); }}
+                placeholder="Ej: Amigurumi de osito, 15 cm, hilo algodón nº 5, crochet 3 mm"
+                className="w-full text-base rounded-xl border-2 border-amber-200 bg-white px-4 py-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              />
+            </div>
+
+            {respuesta.preguntas.length > 0 && (
+              <p className="text-sm text-stone-500">
+                Opcional — elegí solo lo que sepas:
+              </p>
+            )}
+
+            {respuesta.preguntas.map((pregunta, idx) => (
+              <PreguntaChips
+                key={pregunta.id}
+                pregunta={pregunta}
+                numero={respuesta.preguntas.length > 1 ? idx + 1 : undefined}
+                seleccion={seleccionActual[pregunta.id]}
+                onSelect={(label) => {
+                  setError(null);
+                  setSeleccionActual((prev) => ({ ...prev, [pregunta.id]: label }));
+                }}
+              />
+            ))}
+
+            <button
+              type="button"
+              onClick={() => confirmarRespuestas()}
+              disabled={cargando}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-brand-600 text-white text-lg font-semibold hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50 transition-colors shadow-md"
+            >
+              {cargando ? (
+                <>
+                  <Loader2 size={22} className="animate-spin" />
+                  Buscando opciones...
+                </>
+              ) : (
+                <>
+                  Ver recomendaciones
+                  <ChevronRight size={22} />
+                </>
+              )}
+            </button>
+
+            {hayContextoMinimo(contexto, Boolean(imageFile)) && respuesta.progreso.falta.length > 0 && (
+              <button
+                type="button"
+                onClick={() => confirmarRespuestas(true)}
+                disabled={cargando}
+                className="w-full text-center text-sm text-brand-700 hover:text-brand-900 py-2 underline-offset-2 hover:underline"
+              >
+                Saltar y ver opciones con lo que tengo
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={reiniciar}
+              className="w-full text-center text-sm text-stone-500 hover:text-stone-700 py-2"
+            >
+              Empezar de nuevo
+            </button>
+          </div>
+        )}
+
+        {/* PASO 3: Resultado */}
+        {paso === 'resultado' && respuesta?.resultado && (
+          <div className="space-y-6 animate-fade-in">
+            <MensajeAsistente texto={respuesta.mensaje} />
+
+            {respuesta.resultado.completitud === 'aproximada' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 leading-relaxed">
+                Recomendación orientativa: faltaron algunos detalles, así que te mostramos varias opciones posibles. En la mercería te ayudamos a afinar.
+              </div>
+            )}
+
+            <div className="bg-white rounded-2xl border-2 border-brand-200 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-brand-500" size={20} />
+                <h2 className="text-xl font-bold font-outfit text-brand-900">
+                  {respuesta.resultado.completitud === 'aproximada'
+                    ? 'Opciones de materiales'
+                    : 'Materiales estimados'}
+                </h2>
+              </div>
+
+              {respuesta.resultado.tecnica_detectada && (
+                <div className="mb-4">
+                  <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Técnica</span>
+                  <p className="mt-1 text-base font-medium text-stone-800 bg-stone-50 rounded-lg px-3 py-2 inline-block">
+                    {respuesta.resultado.tecnica_detectada}
+                  </p>
+                </div>
+              )}
+
               <ul className="space-y-3">
-                {resultado.insumos.map((insumo, index) => (
-                  <li key={index} className="flex items-start bg-stone-900/50 p-4 rounded-xl border border-stone-700/50">
-                    <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold text-sm mr-4 mt-0.5 shrink-0">
-                      {index + 1}
-                    </div>
-                    <span className="text-stone-200">{insumo}</span>
+                {respuesta.resultado.insumos.map((insumo, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 bg-stone-50 rounded-xl p-4 border border-stone-100"
+                  >
+                    <span className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-base text-stone-800 leading-relaxed">{insumo.descripcion}</span>
                   </li>
                 ))}
               </ul>
+
+              {respuesta.resultado.nota && (
+                <p className="mt-4 text-sm text-stone-500 leading-relaxed border-t border-stone-100 pt-3">
+                  {respuesta.resultado.nota}
+                </p>
+              )}
+            </div>
+
+            {/* Productos sugeridos */}
+            {respuesta.productos_sugeridos.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold font-outfit text-stone-900 mb-3">
+                  Productos en nuestra tienda
+                </h2>
+                <div className="space-y-3">
+                  {respuesta.productos_sugeridos.map((prod) => (
+                    <a
+                      key={prod.id}
+                      href={getProductUrl(prod.slug)}
+                      className="flex items-center gap-4 bg-white rounded-2xl border border-stone-200 p-3 hover:border-brand-300 hover:shadow-sm transition-all active:scale-[0.99]"
+                    >
+                      <div className="w-16 h-16 rounded-xl bg-stone-50 border border-stone-100 shrink-0 overflow-hidden flex items-center justify-center">
+                        {prod.imagen_url ? (
+                          <img src={prod.imagen_url} alt={prod.nombre} className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <ImagePlus size={24} className="text-stone-300" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-stone-500">{prod.categoria}</p>
+                        <p className="text-base font-medium text-brand-800 leading-snug line-clamp-2">{prod.nombre}</p>
+                      </div>
+                      <ChevronRight size={20} className="text-stone-400 shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {respuesta.productos_sugeridos.length === 0 && (
+              <p className="text-base text-stone-600 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                No encontramos coincidencias exactas en el catálogo online, pero podés consultarnos por WhatsApp con la lista de materiales.
+              </p>
+            )}
+
+            {/* CTAs */}
+            <div className="space-y-3 pt-2">
+              <a
+                href={buildWhatsAppMaterialesUrl(
+                  whatsapp,
+                  respuesta.resumen.proyecto || descripcion,
+                  respuesta.resultado.insumos.map((i) => i.descripcion),
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => ReactGA.event({ category: 'IA', action: 'WhatsApp_Resultado' })}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-green-600 text-white text-lg font-semibold hover:bg-green-700 active:bg-green-800 transition-colors shadow-md"
+              >
+                <MessageCircle size={22} />
+                Consultar por WhatsApp
+              </a>
+
+              <button
+                type="button"
+                onClick={reiniciar}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-stone-200 text-stone-700 text-base font-medium hover:bg-stone-50 transition-colors"
+              >
+                <RotateCcw size={18} />
+                Nuevo proyecto
+              </button>
             </div>
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function MensajeAsistente({ texto }: { texto: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="w-10 h-10 rounded-full bg-brand-600 flex items-center justify-center shrink-0">
+        <Sparkles size={18} className="text-white" />
+      </div>
+      <div className="bg-white border border-brand-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex-1">
+        <p className="text-base text-stone-800 leading-relaxed">{texto}</p>
+      </div>
+    </div>
+  );
+}
+
+function ResumenCard({
+  resumen,
+  imagen,
+}: {
+  resumen: ConsultaResponse['resumen'];
+  imagen: string | null;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Lo que entendimos</p>
+      <div className="flex gap-3">
+        {imagen && (
+          <img src={imagen} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0 border border-stone-100" />
+        )}
+        <div className="text-base text-stone-800 space-y-1">
+          {resumen.proyecto && <p><strong>Proyecto:</strong> {resumen.proyecto}</p>}
+          {resumen.tecnica && <p><strong>Técnica:</strong> {resumen.tecnica}</p>}
+          {resumen.detalles.map((d, i) => (
+            <p key={i} className="text-stone-600 text-sm">· {d}</p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProgresoChecklist({ progreso }: { progreso: ProgresoConsulta }) {
+  if (progreso.confirmado.length === 0 && progreso.falta.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-3">
+      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Tu proyecto</p>
+      {progreso.confirmado.map((item, i) => (
+        <div key={`ok-${i}`} className="flex items-start gap-2 text-sm text-stone-700">
+          <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
+          <span>{item}</span>
+        </div>
+      ))}
+      {progreso.falta.map((item, i) => (
+        <div key={`falta-${i}`} className="flex items-start gap-2 text-sm text-stone-600">
+          <span className="w-4 h-4 rounded-full border-2 border-amber-400 shrink-0 mt-0.5" />
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PreguntaChips({
+  pregunta,
+  numero,
+  seleccion,
+  onSelect,
+}: {
+  pregunta: PreguntaIA;
+  numero?: number;
+  seleccion?: string;
+  onSelect: (label: string) => void;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4">
+      <p className="text-base font-semibold text-stone-800 mb-3">
+        {numero !== undefined && (
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold mr-2">
+            {numero}
+          </span>
+        )}
+        {pregunta.pregunta}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {pregunta.opciones.map((opt) => {
+          const activa = seleccion === opt.label;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => onSelect(opt.label)}
+              className={`min-h-[48px] px-4 py-2 rounded-xl text-base font-medium border-2 transition-all active:scale-95 ${
+                activa
+                  ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
+                  : 'bg-white text-stone-700 border-stone-200 hover:border-brand-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
