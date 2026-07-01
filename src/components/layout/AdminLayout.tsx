@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain } from 'lucide-react';
 
 export function AdminLayout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -19,6 +19,7 @@ export function AdminLayout() {
     { href: '/colores', label: 'Colores', icon: Palette },
     { href: '/precios', label: 'Precios', icon: Tags },
     { href: '/sync', label: 'Sincronización Makor', icon: RefreshCw },
+    { href: '/ia', label: 'Asistente IA', icon: Brain },
     { href: '/configuracion', label: 'Configuración', icon: Settings },
   ];
 

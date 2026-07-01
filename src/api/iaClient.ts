@@ -72,6 +72,53 @@ const PROGRESO_VACIO: ProgresoConsulta = {
 
 const REQUEST_TIMEOUT_MS = 90_000;
 
+async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/** Registra la consulta completada en el BO (api.merceriamatilde.com). */
+export async function registrarConsultaEnBO(
+  contexto: ConsultaContexto,
+  result: ConsultaResponse,
+): Promise<void> {
+  if (result.estado !== 'listo' || !result.resultado) return;
+
+  const contextoJson = JSON.stringify(contexto);
+  const resultadoJson = JSON.stringify(result.resultado);
+  const idempotencyKey = await sha256Hex(contextoJson + resultadoJson);
+
+  if (sessionStorage.getItem(`ia_logged_${idempotencyKey}`)) return;
+
+  const apiBase =
+    import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://api.merceriamatilde.com/api');
+
+  const response = await fetch(`${apiBase}/ia/consultas`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': idempotencyKey,
+    },
+    body: JSON.stringify({
+      proyecto: result.resumen.proyecto || contexto.descripcion_inicial || 'Sin título',
+      tecnica: result.resultado.tecnica_detectada,
+      contextoJson,
+      resultadoJson,
+      productosJson: JSON.stringify(result.productos_sugeridos),
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text().catch(() => '');
+    throw new Error(err || `HTTP ${response.status}`);
+  }
+
+  sessionStorage.setItem(`ia_logged_${idempotencyKey}`, '1');
+}
+
 export async function consultarIA(
   contexto: ConsultaContexto,
   imagen?: File | null,

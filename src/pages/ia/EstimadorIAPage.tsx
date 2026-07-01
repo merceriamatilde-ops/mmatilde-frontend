@@ -14,6 +14,7 @@ import { Helmet } from 'react-helmet-async';
 import ReactGA from 'react-ga4';
 import {
   consultarIA,
+  registrarConsultaEnBO,
   type ConsultaContexto,
   type ConsultaResponse,
   type PreguntaIA,
@@ -163,6 +164,9 @@ export function EstimadorIAPage() {
       if (result.estado === 'listo') {
         setPaso('resultado');
         ReactGA.event({ category: 'IA', action: 'Resultado_Completo' });
+        registrarConsultaEnBO(ctx, result).catch((err) => {
+          console.warn('[IA] No se pudo guardar la consulta en el BO:', err);
+        });
       } else {
         setPaso('refinando');
         ReactGA.event({ category: 'IA', action: 'Refinamiento' });

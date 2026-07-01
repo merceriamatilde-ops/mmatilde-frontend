@@ -4,7 +4,6 @@ import { MessageCircle } from 'lucide-react';
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
-import { HeroBanner } from '../../components/ui/HeroBanner';
 import ReactGA from 'react-ga4';
 import { SEO } from '../../components/SEO';
 
@@ -29,8 +28,6 @@ export function HomePage() {
     <div className="animate-fade-in space-y-16">
       <SEO />
       
-      <HeroBanner />
-
       {/* Categorías */}
       <section className="section">
         <div className="section-header flex justify-between items-center mb-6">

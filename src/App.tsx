@@ -35,6 +35,7 @@ import { PreciosPage } from './pages/admin/PreciosPage';
 import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
 import { ColoresPage } from './pages/admin/ColoresPage';
+import { IaPage } from './pages/admin/IaPage';
 
 // Pages - IA
 import { EstimadorIAPage } from './pages/ia/EstimadorIAPage';
@@ -73,6 +74,7 @@ function App() {
                   <Route path="precios" element={<PreciosPage />} />
                   <Route path="colores" element={<ColoresPage />} />
                   <Route path="sync" element={<SyncPage />} />
+                  <Route path="ia" element={<IaPage />} />
                   <Route path="configuracion" element={<ConfiguracionPage />} />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />

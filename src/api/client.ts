@@ -100,4 +100,41 @@ export const api = {
     body: JSON.stringify(data)
   }),
   deleteColor: (id: number) => apiFetch<any>(`/colores/${id}`, { method: 'DELETE' }),
+
+  // Asistente IA (admin)
+  getIaConsultas: (query = '') => apiFetch<any[]>(`/ia/consultas${query}`),
+  getIaConsulta: (id: number) => apiFetch<any>(`/ia/consultas/${id}`),
+  enviarIaFeedback: (id: number, data: any) =>
+    apiFetch<any>(`/ia/consultas/${id}/feedback`, { method: 'PUT', body: JSON.stringify(data) }),
+  registrarIaConsulta: (data: {
+    proyecto: string;
+    tecnica?: string | null;
+    contextoJson: string;
+    resultadoJson: string;
+    productosJson?: string;
+    idempotencyKey?: string;
+  }) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (data.idempotencyKey) {
+      headers['X-Idempotency-Key'] = data.idempotencyKey;
+    }
+    return apiFetch<any>('/ia/consultas', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        proyecto: data.proyecto,
+        tecnica: data.tecnica,
+        contextoJson: data.contextoJson,
+        resultadoJson: data.resultadoJson,
+        productosJson: data.productosJson,
+      }),
+    });
+  },
+  getIaReglas: () => apiFetch<any[]>('/ia/reglas'),
+  crearIaRegla: (data: any) => apiFetch<any>('/ia/reglas', { method: 'POST', body: JSON.stringify(data) }),
+  toggleIaRegla: (id: number) => apiFetch<any>(`/ia/reglas/${id}/toggle`, { method: 'PUT' }),
+  getIaEjemplos: () => apiFetch<any[]>('/ia/ejemplos'),
+  crearIaEjemplo: (data: any) => apiFetch<any>('/ia/ejemplos', { method: 'POST', body: JSON.stringify(data) }),
+  toggleIaEjemplo: (id: number) => apiFetch<any>(`/ia/ejemplos/${id}/toggle`, { method: 'PUT' }),
+  eliminarIaEjemplo: (id: number) => apiFetch<void>(`/ia/ejemplos/${id}`, { method: 'DELETE' }),
 };
