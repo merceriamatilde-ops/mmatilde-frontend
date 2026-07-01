@@ -4,6 +4,7 @@ import { X, Search, ChevronDown, ChevronRight, MessageCircle, Camera } from 'luc
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Logo } from './Logo';
+import { track } from '@vercel/analytics';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -139,6 +140,7 @@ export function MobileMenu({ isOpen, onClose, config }: MobileMenuProps) {
                 href={whatsappUrl(config.whatsapp, "Hola! Vengo desde la tienda online")}
                 target="_blank" 
                 rel="noreferrer"
+                onClick={() => track('Consultar_WhatsApp', { origen: 'Menu_Movil' })}
                 className="flex items-center text-brand-800"
               >
                 <MessageCircle className="w-5 h-5 mr-3" />
@@ -150,6 +152,7 @@ export function MobileMenu({ isOpen, onClose, config }: MobileMenuProps) {
                 href={config.instagram}
                 target="_blank" 
                 rel="noreferrer"
+                onClick={() => track('Click_Redes_Sociales', { red: 'Instagram' })}
                 className="flex items-center text-brand-800"
               >
                 <Camera className="w-5 h-5 mr-3" />

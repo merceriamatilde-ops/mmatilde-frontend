@@ -1,6 +1,7 @@
 import React from 'react';
 import { MapPin, Clock, Truck, Phone } from 'lucide-react';
 import { whatsappUrl } from '../../lib/utils';
+import { track } from '@vercel/analytics';
 
 export function HeroBanner() {
   return (
@@ -71,6 +72,7 @@ export function HeroBanner() {
                 href={whatsappUrl("Hola Mercería Matilde, tengo una consulta.")}
                 target="_blank"
                 rel="noopener noreferrer" 
+                onClick={() => track('Consultar_WhatsApp', { origen: 'HeroBanner' })}
                 className="inline-flex items-center text-xs font-semibold text-green-400 hover:text-green-300"
               >
                 Escribinos por WhatsApp →
