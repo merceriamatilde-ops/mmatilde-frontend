@@ -144,15 +144,17 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
         destacado: formData.destacado,
         visible: formData.visible,
         imagenUrl: formData.imagenUrl,
-        variantes: variantes.map((v, index) => ({
-          id: v.id,
-          colorId: v.colorId ? parseInt(v.colorId.toString()) : null,
-          talle: v.talle,
-          medida: v.medida,
-          codigoArticulo: v.codigoArticulo,
-          activo: v.activo,
-          orden: index
-        })),
+        variantes: variantes
+          .filter(v => v.colorId || (v.talle && v.talle.trim()) || (v.medida && v.medida.trim()) || (v.codigoArticulo && v.codigoArticulo.trim()))
+          .map((v, index) => ({
+            id: v.id,
+            colorId: v.colorId ? parseInt(v.colorId.toString()) : null,
+            talle: v.talle,
+            medida: v.medida,
+            codigoArticulo: v.codigoArticulo,
+            activo: v.activo,
+            orden: index
+          })),
         relacionadosIds: relacionados.map(r => r.id)
       };
 
@@ -318,7 +320,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                   type="button" 
                   size="sm" 
                   variant="outline"
-                  onClick={() => setVariantes([...variantes, { id: null, colorId: '', talle: '', medida: '', codigoArticulo: '', activo: true }])}
+                  onClick={() => setVariantes([{ id: null, colorId: '', talle: '', medida: '', codigoArticulo: '', activo: true }, ...variantes])}
                 >
                   <Plus className="h-4 w-4 mr-2" /> Agregar
                 </Button>
@@ -326,8 +328,16 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
 
               {variantes.length > 0 ? (
                 <div className="space-y-3">
-                  {variantes.map((v, i) => (
-                    <div key={i} className="flex flex-wrap items-center gap-3 p-3 bg-stone-50 rounded-lg border border-stone-200">
+                  {variantes.map((v, i) => {
+                    const isDuplicate = v.colorId && variantes.findIndex((other, idx) => 
+                      idx !== i &&
+                      other.colorId === v.colorId && 
+                      (other.talle || '').trim() === (v.talle || '').trim() && 
+                      (other.medida || '').trim() === (v.medida || '').trim()
+                    ) !== -1;
+
+                    return (
+                      <div key={i} className={`flex flex-wrap items-center gap-3 p-3 rounded-lg border ${isDuplicate ? 'border-red-400 bg-red-50/50 shadow-sm' : 'border-stone-200 bg-stone-50'}`}>
                       <div className="w-full md:w-auto flex-1 min-w-[120px]">
                         <select 
                           className="flex h-10 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
@@ -399,7 +409,8 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-6 text-stone-500 border-2 border-dashed border-stone-200 rounded-lg">
