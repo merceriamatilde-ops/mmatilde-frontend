@@ -15,16 +15,44 @@ export function EstimadorIAPage() {
     }
   };
 
-  const handleAnalyze = (e: React.FormEvent) => {
+  const [resultado, setResultado] = useState<{tecnica: string, insumos: string[]} | null>(null);
+
+  const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!imagePreview && !description) return;
     
     setIsAnalyzing(true);
-    // TODO: Connect to Python backend API
-    setTimeout(() => {
+    setResultado(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('descripcion', description);
+      
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append('imagen', fileInput.files[0]);
+      }
+
+      const response = await fetch('http://localhost:8000/api/estimar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al procesar la solicitud con la IA');
+      }
+
+      const data = await response.json();
+      setResultado({
+        tecnica: data.tecnica_detectada,
+        insumos: data.insumos_teoricos
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Hubo un error al conectar con la IA. Verificá que el backend esté corriendo.");
+    } finally {
       setIsAnalyzing(false);
-      alert("La conexión con la IA está en desarrollo.");
-    }, 3000);
+    }
   };
 
   return (
@@ -131,6 +159,37 @@ export function EstimadorIAPage() {
             )}
           </button>
         </form>
+
+        {/* Results Area */}
+        {resultado && (
+          <div className="mt-8 bg-stone-800/80 border border-brand-500/50 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center mb-6">
+              <Sparkles className="w-6 h-6 text-brand-400 mr-3" />
+              <h2 className="text-2xl font-bold font-outfit text-white">Resultados de la IA</h2>
+            </div>
+            
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-wider mb-2">Técnica Detectada</h3>
+              <p className="text-lg text-white font-medium bg-stone-900 inline-block px-4 py-2 rounded-lg border border-stone-700">
+                {resultado.tecnica}
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-wider mb-3">Insumos Teóricos Necesarios</h3>
+              <ul className="space-y-3">
+                {resultado.insumos.map((insumo, index) => (
+                  <li key={index} className="flex items-start bg-stone-900/50 p-4 rounded-xl border border-stone-700/50">
+                    <div className="w-6 h-6 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold text-sm mr-4 mt-0.5 shrink-0">
+                      {index + 1}
+                    </div>
+                    <span className="text-stone-200">{insumo}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
