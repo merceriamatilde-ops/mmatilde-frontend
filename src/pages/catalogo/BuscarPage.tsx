@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { Search, MessageCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { api } from '../../api/client';
-import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
-import ReactGA from 'react-ga4';
+import { ProductCard, ProductGrid } from '../../components/catalogo';
 
 export function BuscarPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,66 +35,55 @@ export function BuscarPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="max-w-2xl mx-auto text-center space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight font-outfit text-stone-900">Buscar Productos</h1>
-        <form onSubmit={handleSearch} className="relative flex items-center">
-          <input
-            type="search"
-            placeholder="Buscar por nombre o código (mín. 3 letras)..."
-            className="w-full h-14 pl-12 pr-4 rounded-full border-2 border-brand-200 bg-white shadow-sm focus:border-brand-600 focus:ring-0 transition-colors text-lg"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <Search className="absolute left-4 text-brand-600 h-6 w-6" />
-          <button type="submit" className="absolute right-2 h-10 px-6 rounded-full bg-brand-800 text-white font-medium hover:bg-brand-700 transition-colors">
-            Buscar
-          </button>
-        </form>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12"><Spinner size={40} /></div>
-      ) : query && query.length < 3 ? (
-        <p className="text-center text-stone-500 py-12">Ingresá al menos 3 caracteres para buscar.</p>
-      ) : query && productos.length === 0 ? (
-        <p className="text-center text-stone-500 py-12">No se encontraron productos para "{query}".</p>
-      ) : productos.length > 0 ? (
-        <div className="space-y-6">
-          <p className="text-stone-600 font-medium">Resultados para "{query}"</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {productos.map((p) => (
-              <div key={p.id} className="product-card border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow flex flex-col">
-                <Link to={`/producto/${p.slug}`} className="block h-48 bg-white flex-shrink-0">
-                  {p.imagenUrl ? (
-                    <img src={p.imagenUrl} alt={p.nombre} className="w-full h-full object-contain p-4 mix-blend-multiply" />
-                  ) : (
-                    <div className="w-full h-full bg-stone-200 animate-pulse"></div>
-                  )}
-                </Link>
-                <div className="p-4 flex flex-col flex-1">
-                  <p className="text-xs text-stone-500 mb-1">{p.categoria}</p>
-                  <Link to={`/producto/${p.slug}`}>
-                    <h3 className="font-medium text-brand-800 leading-tight transition-colors line-clamp-2">{p.nombre}</h3>
-                  </Link>
-                  <div className="mt-auto pt-4">
-                    <a
-                      href={whatsappUrl(p.nombre)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Busqueda', label: p.nombre })}
-                      className="flex items-center justify-center w-full bg-stone-100 text-stone-900 hover:bg-brand-800 hover:text-white py-2 rounded transition-colors text-sm font-medium"
-                    >
-                      <MessageCircle size={16} className="mr-2" />
-                      Consultar
-                    </a>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="animate-fade-in">
+      {/* Banda gris full-bleed con el buscador */}
+      <section className="border-b border-stone-200 bg-stone-50 py-10">
+        <div className="container mx-auto max-w-7xl px-4">
+          <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-brand-800">
+            ¿Qué estás buscando?
+          </h1>
+          <p className="mt-1.5 text-stone-600">Escribí el nombre del producto o la categoría</p>
+          <form onSubmit={handleSearch} className="relative mt-5 flex max-w-2xl items-center">
+            <Search className="absolute left-5 h-6 w-6 text-brand-600" />
+            <input
+              type="search"
+              placeholder="Ej: lana merino, botón de madera…"
+              className="h-14 w-full rounded-full border-2 border-stone-200 bg-white pl-14 pr-32 text-lg transition-colors focus:border-brand-400 focus:outline-none"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="absolute right-2 h-10 rounded-full bg-brand-800 px-6 font-outfit font-semibold text-white transition-colors hover:bg-brand-900"
+            >
+              Buscar
+            </button>
+          </form>
         </div>
-      ) : null}
+      </section>
+
+      <section className="container mx-auto max-w-7xl px-4 py-8">
+        {loading ? (
+          <div className="flex justify-center py-12"><Spinner size={40} /></div>
+        ) : query && query.length < 3 ? (
+          <p className="py-12 text-center text-stone-500">Ingresá al menos 3 caracteres para buscar.</p>
+        ) : query && productos.length === 0 ? (
+          <p className="py-12 text-center text-stone-500">No se encontraron productos para "{query}".</p>
+        ) : productos.length > 0 ? (
+          <div className="space-y-5">
+            <p className="text-stone-600">
+              Mostrando resultados para <strong className="font-semibold text-stone-900">"{query}"</strong> · {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
+            </p>
+            <ProductGrid>
+              {productos.map((p) => (
+                <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Busqueda" />
+              ))}
+            </ProductGrid>
+          </div>
+        ) : (
+          <p className="py-8 text-stone-500">Ideas: lana, botones, agujas, cinta raso, guata…</p>
+        )}
+      </section>
     </div>
   );
 }

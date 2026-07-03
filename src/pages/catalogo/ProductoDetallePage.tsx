@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MessageCircle, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
+import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
 import ReactGA from 'react-ga4';
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
+import { SectionHeading } from '../../components/catalogo';
 
 export function ProductoDetallePage() {
   const { slug } = useParams();
@@ -31,7 +33,7 @@ export function ProductoDetallePage() {
   if (error || !producto) return <NotFoundPage />;
 
   return (
-    <div className="animate-fade-in space-y-8">
+    <div className="container mx-auto max-w-7xl animate-fade-in space-y-8 px-4 py-6">
       <SEO 
         title={producto.nombre} 
         description={producto.descripcion || `Consultá el precio y detalles de ${producto.nombre} en Matilde Mercería.`}
@@ -52,8 +54,8 @@ export function ProductoDetallePage() {
         <span className="text-stone-900 font-medium truncate">{producto.nombre}</span>
       </nav>
 
-      <div className="grid gap-12 md:grid-cols-2">
-        <div className="aspect-square overflow-hidden rounded-xl bg-white border border-stone-200 p-8 flex items-center justify-center">
+      <div className="grid gap-7 md:grid-cols-2 md:items-start md:gap-11">
+        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 p-6">
           {producto.imagenes && producto.imagenes.length > 0 ? (
             <img 
               src={producto.imagenes[0]} 
@@ -67,8 +69,8 @@ export function ProductoDetallePage() {
 
         <div className="space-y-8 flex flex-col justify-center">
           <div>
-            <p className="text-sm font-medium text-brand-800 mb-2">
-              {producto.categoria} {producto.subcategoria && ` > ${producto.subcategoria}`}
+            <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-brand-600">
+              {producto.categoria}{producto.subcategoria ? ` · ${producto.subcategoria}` : ''}
             </p>
             <h1 className="text-3xl md:text-4xl font-bold text-stone-900 font-outfit leading-tight mb-4">
               {producto.nombre}
@@ -140,43 +142,43 @@ export function ProductoDetallePage() {
             )}
           </div>
 
-          <div className="pt-8 border-t border-stone-200">
-            <p className="text-sm text-stone-500 mb-4">
-              Los precios varían según cantidad y condiciones. Comunicate con nosotros para recibir atención personalizada.
-            </p>
+          <div className="max-w-sm">
             <a
               href={whatsappUrl(producto.nombre)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Producto', label: producto.nombre })}
-              className="inline-flex w-full md:w-auto items-center justify-center rounded-md bg-[#25D366] px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all hover:bg-[#20bd5a] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
+              className="inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-7 py-4 text-lg font-semibold text-white shadow-[0_8px_20px_rgba(37,211,102,0.28)] transition-colors hover:bg-[#1da851] active:translate-y-px"
             >
-              <MessageCircle className="mr-3" size={24} />
+              <WhatsAppIcon size={24} />
               Consultar por WhatsApp
             </a>
+            <p className="mt-2.5 text-center text-sm text-stone-500">
+              Te respondemos precio y disponibilidad al instante
+            </p>
           </div>
         </div>
       </div>
 
       {producto.relacionados && producto.relacionados.length > 0 && (
-        <div className="pt-16 border-t border-stone-200 mt-16">
-          <h2 className="text-2xl font-bold font-outfit text-stone-900 mb-6">También te puede interesar</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="pt-12 border-t border-stone-200 mt-12">
+          <SectionHeading title="Te puede interesar" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
             {producto.relacionados.map((rel: any) => (
               <Link 
                 key={rel.id}
                 to={`/producto/${rel.slug}`} 
-                className="group flex flex-col bg-white border border-stone-200 rounded-xl overflow-hidden hover:shadow-lg transition-all"
+                className="group flex flex-col bg-white border border-stone-200 rounded-2xl overflow-hidden transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(43,36,34,0.08)]"
               >
                 <div className="aspect-square bg-stone-50 p-4 flex items-center justify-center overflow-hidden">
                   {rel.imagenUrl ? (
-                    <img src={rel.imagenUrl} alt={rel.nombre} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform" />
+                    <img src={rel.imagenUrl} alt={rel.nombre} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <span className="text-stone-300 text-sm">Sin imagen</span>
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-medium text-stone-900 line-clamp-2 text-sm group-hover:text-brand-700 transition-colors">
+                  <h3 className="font-outfit font-semibold text-stone-900 line-clamp-2 text-sm group-hover:text-brand-700 transition-colors">
                     {rel.nombre}
                   </h3>
                 </div>

@@ -1,28 +1,37 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Home } from 'lucide-react';
 import { SEO } from '../../components/SEO';
 
 export function NotFoundPage() {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 text-center animate-fade-in">
+    <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center animate-fade-in">
       <SEO title="Página no encontrada" description="La página que estás buscando no existe." />
-      
-      <h1 className="text-8xl font-black text-brand-100 font-outfit mb-4">404</h1>
-      <h2 className="text-2xl md:text-3xl font-bold text-stone-900 mb-4 font-outfit">
-        Ups... esta página no existe
-      </h2>
-      <p className="text-stone-500 mb-8 max-w-md">
-        Parece que el enlace está roto o la página fue movida a otra dirección.
+
+      <div className="font-outfit text-[clamp(4rem,18vw,7rem)] font-extrabold leading-none text-brand-400" aria-hidden>
+        404
+      </div>
+      <h1 className="mb-3 mt-2 font-outfit text-[1.6rem] font-bold text-stone-900">
+        Uy, esta página se nos perdió entre los ovillos
+      </h1>
+      <p className="mb-6 text-stone-600">
+        No encontramos lo que buscabas. Quizás cambió de lugar o el enlace no es correcto. Volvé al
+        inicio o mirá nuestras categorías.
       </p>
-      
-      <Link 
-        to="/" 
-        className="inline-flex items-center justify-center rounded-md bg-brand-800 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-900 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-800 focus:ring-offset-2"
-      >
-        <Home className="w-4 h-4 mr-2" />
-        Volver al inicio
-      </Link>
+
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center justify-center rounded-full bg-brand-800 px-5 py-[11px] text-[15px] font-semibold text-white transition-colors hover:bg-brand-900 active:translate-y-px"
+        >
+          Volver al inicio
+        </Link>
+        <Link
+          to="/categorias"
+          className="inline-flex items-center justify-center rounded-full bg-stone-100 px-5 py-[11px] text-[15px] font-semibold text-brand-800 transition-colors hover:bg-stone-200 active:translate-y-px"
+        >
+          Ver categorías
+        </Link>
+      </div>
     </div>
   );
 }

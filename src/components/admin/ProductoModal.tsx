@@ -21,14 +21,18 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
   
   const [formData, setFormData] = useState({
     nombre: '',
+    nombrePublico: '',
     codigo: '',
     categoriaId: '',
     subcategoriaId: '',
     descripcion: '',
+    descripcionPublica: '',
     precioBase: '',
     destacado: false,
     visible: true,
-    imagenUrl: ''
+    imagenUrl: '',
+    imagenPublicaUrl: '',
+    imagenProveedorUrl: ''
   });
 
   const [variantes, setVariantes] = useState<any[]>([]);
@@ -41,6 +45,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
   const [searchingRel, setSearchingRel] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMakorProduct = isEditing && product?.proveedorId === 1;
 
   useEffect(() => {
     loadColores();
@@ -76,16 +81,25 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
 
   useEffect(() => {
     if (product) {
+      const proveedorImg = product.imagenProveedorUrl
+        || product.imagenes?.find((i: any) => i.esDeProveedor)?.urlOriginal
+        || product.imagenes?.[0]?.urlOriginal
+        || '';
+
       setFormData({
         nombre: product.nombre || '',
+        nombrePublico: product.nombrePublico || '',
         codigo: product.codigoMakor || '',
         categoriaId: product.categoriaId?.toString() || '',
         subcategoriaId: product.subcategoriaId?.toString() || '',
         descripcion: product.descripcion || '',
+        descripcionPublica: product.descripcionPublica || '',
         precioBase: product.precioMayorista?.toString() || '',
         destacado: product.destacado || false,
         visible: product.activo ?? true,
-        imagenUrl: product.imagenes?.[0]?.urlOriginal || ''
+        imagenUrl: product.imagenes?.find((i: any) => !i.esDeProveedor)?.urlOriginal || product.imagenes?.[0]?.urlOriginal || '',
+        imagenPublicaUrl: product.imagenPublicaUrl || '',
+        imagenProveedorUrl: proveedorImg
       });
       
       setVariantes(product.variantes || []);
@@ -109,14 +123,18 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
     setSubcategorias(cat?.subcategorias || []);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'publica' | 'manual' = 'manual') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
       const res = await api.uploadImage(file);
-      setFormData(prev => ({ ...prev, imagenUrl: res.url }));
+      if (target === 'publica') {
+        setFormData(prev => ({ ...prev, imagenPublicaUrl: res.url }));
+      } else {
+        setFormData(prev => ({ ...prev, imagenUrl: res.url }));
+      }
       toast.success('Imagen subida correctamente');
     } catch (error: any) {
       toast.error(error.message || 'Error al subir la imagen');
@@ -127,14 +145,39 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre || !formData.categoriaId) {
+    if (!isMakorProduct && (!formData.nombre || !formData.categoriaId)) {
       toast.error('Completá los campos obligatorios');
       return;
     }
 
     setLoading(true);
     try {
-      const payload = {
+      const payload = isMakorProduct ? {
+        nombre: formData.nombre,
+        codigo: formData.codigo,
+        categoriaId: parseInt(formData.categoriaId),
+        subcategoriaId: formData.subcategoriaId ? parseInt(formData.subcategoriaId) : null,
+        descripcion: formData.descripcion,
+        precioBase: formData.precioBase ? parseFloat(formData.precioBase) : null,
+        destacado: formData.destacado,
+        visible: formData.visible,
+        imagenUrl: formData.imagenProveedorUrl,
+        nombrePublico: formData.nombrePublico,
+        descripcionPublica: formData.descripcionPublica,
+        imagenPublicaUrl: formData.imagenPublicaUrl,
+        variantes: variantes
+          .filter(v => v.colorId || (v.talle && v.talle.trim()) || (v.medida && v.medida.trim()) || (v.codigoArticulo && v.codigoArticulo.trim()))
+          .map((v, index) => ({
+            id: v.id,
+            colorId: v.colorId ? parseInt(v.colorId.toString()) : null,
+            talle: v.talle,
+            medida: v.medida,
+            codigoArticulo: v.codigoArticulo,
+            activo: v.activo,
+            orden: index
+          })),
+        relacionadosIds: relacionados.map(r => r.id)
+      } : {
         nombre: formData.nombre,
         codigo: formData.codigo,
         categoriaId: parseInt(formData.categoriaId),
@@ -173,11 +216,9 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
     }
   };
 
-  const isMakorProduct = isEditing && product?.proveedorId === 1;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center p-6 border-b border-stone-100 flex-shrink-0">
           <div>
             <h3 className="text-xl font-bold font-outfit text-stone-900">
@@ -185,7 +226,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
             </h3>
             {isMakorProduct && (
               <p className="text-sm text-brand-800 mt-1 font-medium bg-brand-50 inline-block px-2 py-0.5 rounded">
-                Producto sincronizado. Algunos campos están bloqueados.
+                Producto Makor — editá el contenido visible en el catálogo
               </p>
             )}
           </div>
@@ -196,34 +237,129 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
 
         <div className="p-6 overflow-y-auto flex-1">
           <form id="productForm" onSubmit={handleSubmit} className="space-y-6">
+
+            {isMakorProduct && (
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-stone-700">Datos originales de Makor</h4>
+                  <p className="text-xs text-stone-500">Se actualizan automáticamente con cada sincronización</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-stone-500 mb-1 block">Título Makor</label>
+                    <p className="text-sm text-stone-800 bg-white border border-stone-200 rounded-md px-3 py-2">{formData.nombre || '—'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-stone-500 mb-1 block">Imagen Makor</label>
+                    {formData.imagenProveedorUrl ? (
+                      <img src={formData.imagenProveedorUrl} alt="Makor" className="w-full h-24 object-cover rounded-lg border border-stone-200" />
+                    ) : (
+                      <p className="text-sm text-stone-400 bg-white border border-stone-200 rounded-md px-3 py-2">Sin imagen</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-stone-500 mb-1 block">Descripción Makor</label>
+                  <p className="text-sm text-stone-700 bg-white border border-stone-200 rounded-md px-3 py-2 min-h-[60px] whitespace-pre-wrap">
+                    {formData.descripcion || 'Sin descripción'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isMakorProduct && (
+              <div className="rounded-xl border border-brand-200 bg-brand-50/30 p-4 space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-brand-900">Visible en el catálogo</h4>
+                  <p className="text-xs text-stone-500">Si dejás un campo vacío, se usa el dato original de Makor</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-stone-700 mb-1 block">Título público</label>
+                      <Input
+                        placeholder={formData.nombre || 'Ej: Totora suelta'}
+                        value={formData.nombrePublico}
+                        onChange={e => setFormData({ ...formData, nombrePublico: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-stone-700 mb-1 block">Descripción pública</label>
+                      <textarea
+                        className="flex w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 min-h-[100px]"
+                        placeholder="Descripción para el cliente..."
+                        value={formData.descripcionPublica}
+                        onChange={e => setFormData({ ...formData, descripcionPublica: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-stone-700 mb-1 block">Imagen pública</label>
+                    <div className="border-2 border-dashed border-brand-200 rounded-xl p-4 text-center bg-white">
+                      {formData.imagenPublicaUrl ? (
+                        <div className="relative group">
+                          <img src={formData.imagenPublicaUrl} alt="Pública" className="w-full h-32 object-cover rounded-lg" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                            <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                              Cambiar
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" onClick={() => setFormData(prev => ({ ...prev, imagenPublicaUrl: '' }))}>
+                              Quitar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-4">
+                          <ImageIcon className="mx-auto h-8 w-8 text-stone-300 mb-2" />
+                          <p className="text-sm text-stone-500 mb-2">Subí una imagen propia o se usará la de Makor</p>
+                          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4 mr-2" />}
+                            {uploading ? 'Subiendo...' : 'Seleccionar Archivo'}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
+                {!isMakorProduct && (
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Nombre *</label>
                   <Input 
                     required 
-                    disabled={isMakorProduct}
                     value={formData.nombre} 
                     onChange={e => setFormData({...formData, nombre: e.target.value})} 
                   />
                 </div>
+                )}
 
+                {isMakorProduct && (
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">Código Makor</label>
+                  <Input disabled value={formData.codigo} />
+                </div>
+                )}
+
+                {!isMakorProduct && (
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Código / SKU</label>
                   <Input 
-                    disabled={isMakorProduct}
                     placeholder="Se autogenera si se deja vacío"
                     value={formData.codigo} 
                     onChange={e => setFormData({...formData, codigo: e.target.value})} 
                   />
                 </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-stone-700 mb-1 block">Categoría *</label>
                     <select 
-                      required
+                      required={!isMakorProduct}
                       disabled={isMakorProduct}
                       className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 disabled:bg-stone-50"
                       value={formData.categoriaId}
@@ -264,6 +400,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                 </div>
               </div>
 
+              {!isMakorProduct && (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Imagen</label>
@@ -287,28 +424,29 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                         </Button>
                       </div>
                     )}
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Descripción</label>
                   <textarea 
-                    disabled={isMakorProduct}
-                    className="flex w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 min-h-[100px] disabled:opacity-50 disabled:bg-stone-50"
+                    className="flex w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 min-h-[100px]"
                     placeholder="Detalles del producto..."
                     value={formData.descripcion}
                     onChange={e => setFormData({...formData, descripcion: e.target.value})}
                   />
                 </div>
               </div>
+              )}
             </div>
+
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*"
+              onChange={(e) => handleImageUpload(e, isMakorProduct ? 'publica' : 'manual')}
+            />
             
             <div className="pt-4 border-t border-stone-100">
               <div className="flex justify-between items-center mb-4">

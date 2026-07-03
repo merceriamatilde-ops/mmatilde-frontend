@@ -72,7 +72,11 @@ export function ConfigForm() {
             <label className="text-sm font-medium">WhatsApp (con código país +549)</label>
             <Input name="whatsapp" value={config['whatsapp'] || ''} onChange={handleChange} />
           </div>
-          <div className="space-y-2 col-span-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email</label>
+            <Input name="email" type="email" value={config['email'] || ''} onChange={handleChange} placeholder="hola@merceriamatilde.com" />
+          </div>
+          <div className="space-y-2">
             <label className="text-sm font-medium">Dirección</label>
             <Input name="direccion" value={config['direccion'] || ''} onChange={handleChange} />
           </div>

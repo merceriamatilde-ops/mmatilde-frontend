@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { MessageCircle, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
-import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
-import ReactGA from 'react-ga4';
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
+import { ProductCard, ProductGrid } from '../../components/catalogo';
 
 export function CategoriaDetallePage() {
   const { slug } = useParams();
@@ -40,13 +39,13 @@ export function CategoriaDetallePage() {
   const currentSub = subcategorias.find((s: any) => s.slug === subSlug);
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="container mx-auto max-w-7xl space-y-7 animate-fade-in px-4 py-6">
       <SEO 
         title={currentSub ? `${categoriaName} - ${currentSub.nombre}` : categoriaName} 
         description={`Explorá todos los productos de la categoría ${categoriaName} en Matilde Mercería.`}
       />
       
-      <div className="border-b border-stone-200 pb-6">
+      <div>
         <nav className="flex items-center space-x-2 text-sm text-stone-500 mb-4">
           <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>
           <ChevronRight size={16} />
@@ -67,28 +66,32 @@ export function CategoriaDetallePage() {
           )}
         </nav>
 
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-outfit text-stone-900">
+        <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-brand-800">
           {currentSub ? currentSub.nombre : categoriaName}
         </h1>
-        <p className="text-stone-500 mt-2">{productos.length} {productos.length === 1 ? 'producto' : 'productos'}</p>
+        <p className="text-stone-500 mt-1">{productos.length} {productos.length === 1 ? 'producto' : 'productos'}</p>
       </div>
 
       {subcategorias.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSearchParams({})}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              !subSlug ? 'bg-brand-800 text-white shadow-md' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+              !subSlug
+                ? 'border-brand-800 bg-brand-800 text-white'
+                : 'border-stone-200 bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
             }`}
           >
-            Todos
+            Todas
           </button>
           {subcategorias.map((sub: any) => (
             <button
               key={sub.id}
               onClick={() => setSearchParams({ sub: sub.slug })}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                subSlug === sub.slug ? 'bg-brand-800 text-white shadow-md' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                subSlug === sub.slug
+                  ? 'border-brand-800 bg-brand-800 text-white'
+                  : 'border-stone-200 bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
               }`}
             >
               {sub.nombre}
@@ -97,39 +100,14 @@ export function CategoriaDetallePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <ProductGrid>
         {productos.map((p: any) => (
-          <div key={p.id} className="product-card border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow flex flex-col">
-            <Link to={`/producto/${p.slug}`} className="block h-48 bg-white flex-shrink-0">
-              {p.imagenUrl ? (
-                <img src={p.imagenUrl} alt={p.nombre} className="w-full h-full object-contain p-4 mix-blend-multiply" />
-              ) : (
-                <div className="w-full h-full bg-stone-200 animate-pulse"></div>
-              )}
-            </Link>
-            <div className="p-4 flex flex-col flex-1">
-              <Link to={`/producto/${p.slug}`}>
-                <h3 className="font-medium text-brand-800 leading-tight transition-colors line-clamp-2">{p.nombre}</h3>
-              </Link>
-              <div className="mt-auto pt-4">
-                <a
-                  href={whatsappUrl(p.nombre)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Categoria', label: p.nombre })}
-                  className="flex items-center justify-center w-full bg-stone-100 text-stone-900 hover:bg-brand-800 hover:text-white py-2 rounded transition-colors text-sm font-medium"
-                >
-                  <MessageCircle size={16} className="mr-2" />
-                  Consultar
-                </a>
-              </div>
-            </div>
-          </div>
+          <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Categoria" />
         ))}
         {productos.length === 0 && (
-          <p className="col-span-full text-center text-stone-500 py-12">No hay productos en esta categoría.</p>
+          <p className="col-span-full py-12 text-center text-stone-500">No hay productos en esta categoría.</p>
         )}
-      </div>
+      </ProductGrid>
     </div>
   );
 }
