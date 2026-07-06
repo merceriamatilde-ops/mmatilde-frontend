@@ -6,9 +6,11 @@ import {
   HomeIntro,
   SectionHeading,
   CategoryCard,
+  ColeccionCard,
   ProductCard,
   ProductGrid,
   type CategoriaCardData,
+  type ColeccionCardData,
   type ProductoCardData,
 } from '../../components/catalogo';
 
@@ -16,6 +18,7 @@ export function HomePage() {
   const [data, setData] = useState<{
     categorias: CategoriaCardData[];
     productosRecientes: ProductoCardData[];
+    colecciones: ColeccionCardData[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +26,11 @@ export function HomePage() {
     api
       .getHomeData()
       .then((res) => {
-        setData(res);
+        setData({
+          categorias: res.categorias || [],
+          productosRecientes: res.productosRecientes || [],
+          colecciones: res.colecciones || [],
+        });
         setLoading(false);
       })
       .catch((err) => {
@@ -65,6 +72,22 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {data.colecciones.length > 0 && (
+        <section className="py-11">
+          <div className="container mx-auto max-w-7xl px-4">
+            <SectionHeading
+              title="Descubrí por interés"
+              subtitle="Colecciones pensadas para lo que querés hacer"
+            />
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              {data.colecciones.map((col) => (
+                <ColeccionCard key={col.slug} coleccion={col} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Banda gris full-bleed */}
       <section className="border-y border-stone-200 bg-stone-50 py-11">

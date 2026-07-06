@@ -8,6 +8,56 @@
   }
 }
 
+@layer components {
+  /* Backoffice: scrollbars finos y consistentes (Chrome/Edge/Safari + Firefox) */
+  .admin-shell {
+    scrollbar-gutter: stable;
+  }
+
+  .admin-shell,
+  .admin-shell * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 162, 158, 0.45) transparent;
+  }
+
+  .admin-shell *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .admin-shell *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-shell *::-webkit-scrollbar-thumb {
+    background-color: rgba(168, 162, 158, 0.42);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .admin-shell *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(120, 113, 108, 0.58);
+  }
+
+  .admin-shell *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Sidebar y superficies oscuras */
+  .admin-shell .admin-scroll-dark {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .admin-shell .admin-scroll-dark::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .admin-shell .admin-scroll-dark::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.34);
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.5s ease-out forwards;

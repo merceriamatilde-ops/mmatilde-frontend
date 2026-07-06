@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
+import { ProductoPreciosSection } from './ProductoPreciosSection';
 
 interface ProductoModalProps {
   product?: any;
@@ -43,12 +44,15 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
   const [searchRel, setSearchRel] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingRel, setSearchingRel] = useState(false);
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMakorProduct = isEditing && product?.proveedorId === 1;
 
   useEffect(() => {
     loadColores();
+    api.getTagsActivos().then(setAllTags).catch(console.error);
   }, []);
 
   const loadColores = async () => {
@@ -104,6 +108,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
       
       setVariantes(product.variantes || []);
       setRelacionados(product.relacionados || []);
+      setSelectedTagIds((product.tags || []).map((t: any) => t.id));
 
       const cat = categorias.find(c => c.id.toString() === product.categoriaId?.toString());
       if (cat?.subcategorias) {
@@ -112,6 +117,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
     } else {
       setVariantes([]);
       setRelacionados([]);
+      setSelectedTagIds([]);
     }
   }, [product, categorias]);
 
@@ -176,7 +182,8 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
             activo: v.activo,
             orden: index
           })),
-        relacionadosIds: relacionados.map(r => r.id)
+        relacionadosIds: relacionados.map(r => r.id),
+        tagIds: selectedTagIds
       } : {
         nombre: formData.nombre,
         codigo: formData.codigo,
@@ -198,7 +205,8 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
             activo: v.activo,
             orden: index
           })),
-        relacionadosIds: relacionados.map(r => r.id)
+        relacionadosIds: relacionados.map(r => r.id),
+        tagIds: selectedTagIds
       };
 
       if (isEditing) {
@@ -553,6 +561,54 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
               ) : (
                 <div className="text-center py-6 text-stone-500 border-2 border-dashed border-stone-200 rounded-lg">
                   No hay variantes agregadas
+                </div>
+              )}
+            </div>
+
+            {isEditing && product?.id && (
+              <div className="pt-4 border-t border-stone-100">
+                <ProductoPreciosSection
+                  productoId={product.id}
+                  nombreProducto={product.nombre || formData.nombre}
+                />
+              </div>
+            )}
+
+            {/* Tags */}
+            <div className="pt-4 border-t border-stone-100">
+              <div className="mb-3">
+                <h4 className="text-sm font-bold text-stone-900">Tags / Colecciones</h4>
+                <p className="text-xs text-stone-500">
+                  Agrupá el producto para landings del catálogo (artesanías, arreglos, etc.)
+                </p>
+              </div>
+              {allTags.length === 0 ? (
+                <p className="text-sm text-stone-500">
+                  No hay tags activos. Creálos en <span className="font-medium">Tags</span> del menú.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => {
+                    const selected = selectedTagIds.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedTagIds((prev) =>
+                            selected ? prev.filter((id) => id !== tag.id) : [...prev, tag.id]
+                          )
+                        }
+                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          selected
+                            ? 'border-brand-600 bg-brand-50 text-brand-800'
+                            : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'
+                        }`}
+                      >
+                        {tag.nombre}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

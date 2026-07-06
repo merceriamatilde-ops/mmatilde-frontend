@@ -13,3 +13,11 @@ export type CategoriaCardData = {
   icon?: string;
   count?: number;
 };
+
+export type ColeccionCardData = {
+  slug: string;
+  nombre: string;
+  descripcion?: string | null;
+  colorHex?: string | null;
+  count?: number;
+};

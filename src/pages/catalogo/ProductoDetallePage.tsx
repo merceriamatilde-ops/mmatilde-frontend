@@ -80,6 +80,19 @@ export function ProductoDetallePage() {
                 {producto.descripcion}
               </p>
             )}
+            {producto.tags && producto.tags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {producto.tags.map((tag: any) => (
+                  <Link
+                    key={tag.id}
+                    to={`/colecciones/${tag.slug}`}
+                    className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600 transition-colors hover:border-brand-400 hover:text-brand-800"
+                  >
+                    {tag.nombre}
+                  </Link>
+                ))}
+              </div>
+            )}
 
             {producto.variantes && producto.variantes.length > 0 && (
               <div className="space-y-6 pt-6 border-t border-stone-100">

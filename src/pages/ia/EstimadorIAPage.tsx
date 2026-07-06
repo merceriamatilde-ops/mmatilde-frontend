@@ -375,8 +375,12 @@ export function EstimadorIAPage() {
                 Foto de referencia <span className="font-normal text-stone-400">(opcional)</span>
               </label>
               {imagePreview ? (
-                <div className="relative rounded-2xl overflow-hidden border-2 border-brand-200">
-                  <img src={imagePreview} alt="Tu referencia" className="w-full max-h-56 object-cover" />
+                <div className="relative rounded-2xl border-2 border-brand-200 bg-stone-100 h-56 flex items-center justify-center p-2">
+                  <img
+                    src={imagePreview}
+                    alt="Tu referencia"
+                    className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg border border-stone-200 bg-white shadow-sm"
+                  />
                   <button
                     type="button"
                     onClick={quitarImagen}
@@ -690,7 +694,7 @@ function ResumenCard({
       <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Lo que entendimos</p>
       <div className="flex gap-3">
         {imagen && (
-          <img src={imagen} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0 border border-stone-100" />
+          <img src={imagen} alt="" className="w-16 h-16 rounded-lg object-contain shrink-0 border border-stone-200 bg-stone-50 p-0.5" />
         )}
         <div className="text-base text-stone-800 space-y-1">
           {resumen.proyecto && <p><strong>Proyecto:</strong> {resumen.proyecto}</p>}

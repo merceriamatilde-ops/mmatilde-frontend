@@ -26,7 +26,9 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(errText || 'API Error');
+    const err = new Error(errText || 'API Error') as Error & { status?: number };
+    err.status = response.status;
+    throw err;
   }
 
   // Handle empty 200 OK responses
@@ -38,6 +40,11 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 export const api = {
   login: (data: any) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   getHomeData: () => apiFetch<any>('/catalogo/home'),
+  getColecciones: () => apiFetch<any[]>('/catalogo/colecciones'),
+  getColeccion: (slug: string, categoria?: string) => {
+    const q = categoria ? `?categoria=${encodeURIComponent(categoria)}` : '';
+    return apiFetch<any>(`/catalogo/colecciones/${slug}${q}`);
+  },
   
   // Categorias (Public)
   getCategorias: () => apiFetch<any>('/categorias'),
@@ -101,6 +108,13 @@ export const api = {
   }),
   deleteColor: (id: number) => apiFetch<any>(`/colores/${id}`, { method: 'DELETE' }),
 
+  // Tags / Colecciones
+  getTags: () => apiFetch<any[]>('/tags'),
+  getTagsActivos: () => apiFetch<any[]>('/tags/activos'),
+  createTag: (data: any) => apiFetch<any>('/tags', { method: 'POST', body: JSON.stringify(data) }),
+  updateTag: (id: number, data: any) => apiFetch<any>(`/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteTag: (id: number) => apiFetch<any>(`/tags/${id}`, { method: 'DELETE' }),
+
   // Asistente IA (admin)
   getIaConsultas: (query = '') => apiFetch<any[]>(`/ia/consultas${query}`),
   getIaConsulta: (id: number) => apiFetch<any>(`/ia/consultas/${id}`),
@@ -137,4 +151,20 @@ export const api = {
   crearIaEjemplo: (data: any) => apiFetch<any>('/ia/ejemplos', { method: 'POST', body: JSON.stringify(data) }),
   toggleIaEjemplo: (id: number) => apiFetch<any>(`/ia/ejemplos/${id}/toggle`, { method: 'PUT' }),
   eliminarIaEjemplo: (id: number) => apiFetch<void>(`/ia/ejemplos/${id}`, { method: 'DELETE' }),
+
+  // Precios
+  getPrecioConfig: () => apiFetch<any>('/precios/config'),
+  updatePrecioConfig: (data: { ivaPorcentaje: number; margenGlobal: number }) =>
+    apiFetch('/precios/config', { method: 'PUT', body: JSON.stringify(data) }),
+  getReglasPrecio: () => apiFetch<any[]>('/precios/reglas'),
+  createReglaPrecio: (data: any) =>
+    apiFetch<any>('/precios/reglas', { method: 'POST', body: JSON.stringify(data) }),
+  deleteReglaPrecio: (id: number) => apiFetch(`/precios/reglas/${id}`, { method: 'DELETE' }),
+  getProductoPrecios: (id: number) => apiFetch<any>(`/precios/producto/${id}`),
+  updateProductoPrecios: (id: number, data: any) =>
+    apiFetch<any>(`/precios/producto/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  detectarUnidadProducto: (id: number) =>
+    apiFetch<any>(`/precios/producto/${id}/detectar-unidad`, { method: 'POST' }),
+  recalcularPreciosProducto: (id: number) =>
+    apiFetch<any>(`/precios/producto/${id}/recalcular`, { method: 'POST' }),
 };

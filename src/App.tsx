@@ -24,6 +24,7 @@ import { CategoriasPage } from './pages/catalogo/CategoriasPage';
 import { CategoriaDetallePage } from './pages/catalogo/CategoriaDetallePage';
 import { ProductoDetallePage } from './pages/catalogo/ProductoDetallePage';
 import { BuscarPage } from './pages/catalogo/BuscarPage';
+import { ColeccionDetallePage } from './pages/catalogo/ColeccionDetallePage';
 import { NotFoundPage } from './pages/catalogo/NotFoundPage';
 import { LoginPage } from './pages/auth/LoginPage';
 
@@ -35,6 +36,7 @@ import { PreciosPage } from './pages/admin/PreciosPage';
 import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
 import { ColoresPage } from './pages/admin/ColoresPage';
+import { TagsPage } from './pages/admin/TagsPage';
 import { IaPage } from './pages/admin/IaPage';
 
 // Pages - IA
@@ -73,6 +75,7 @@ function App() {
                   <Route path="categorias" element={<AdminCategoriasPage />} />
                   <Route path="precios" element={<PreciosPage />} />
                   <Route path="colores" element={<ColoresPage />} />
+                  <Route path="tags" element={<TagsPage />} />
                   <Route path="sync" element={<SyncPage />} />
                   <Route path="ia" element={<IaPage />} />
                   <Route path="configuracion" element={<ConfiguracionPage />} />
@@ -87,6 +90,7 @@ function App() {
                   <Route index element={<HomePage />} />
                   <Route path="categorias" element={<CategoriasPage />} />
                   <Route path="categorias/:slug" element={<CategoriaDetallePage />} />
+                  <Route path="colecciones/:slug" element={<ColeccionDetallePage />} />
                   <Route path="producto/:slug" element={<ProductoDetallePage />} />
                   <Route path="buscar" element={<BuscarPage />} />
                   <Route path="*" element={<NotFoundPage />} />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark } from 'lucide-react';
 
 export function AdminLayout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -17,6 +17,7 @@ export function AdminLayout() {
     { href: '/productos', label: 'Productos', icon: Package },
     { href: '/categorias', label: 'Categorías', icon: FolderTree },
     { href: '/colores', label: 'Colores', icon: Palette },
+    { href: '/tags', label: 'Tags', icon: Bookmark },
     { href: '/precios', label: 'Precios', icon: Tags },
     { href: '/sync', label: 'Sincronización Makor', icon: RefreshCw },
     { href: '/ia', label: 'Asistente IA', icon: Brain },
@@ -24,7 +25,7 @@ export function AdminLayout() {
   ];
 
   return (
-    <div className="h-screen overflow-hidden bg-stone-100 flex flex-col md:flex-row relative">
+    <div className="admin-shell h-screen overflow-hidden bg-stone-100 flex flex-col md:flex-row relative">
       
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between bg-stone-950 px-4 py-3 shadow-md z-30">
@@ -55,7 +56,7 @@ export function AdminLayout() {
           <span className="text-xl font-bold text-white tracking-tight">Matilde <span className="text-brand-600">BO</span></span>
         </div>
         
-        <nav className="flex-1 py-4 space-y-1 overflow-y-auto">
+        <nav className="admin-scroll-dark flex-1 space-y-1 overflow-y-auto py-4 overscroll-contain">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
@@ -98,7 +99,7 @@ export function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-stone-100 flex flex-col w-full">
+      <main className="flex-1 overflow-auto overscroll-contain bg-stone-100 flex flex-col w-full">
         <div className="p-4 sm:p-6 md:p-8 w-full max-w-full overflow-x-hidden">
           <Outlet />
         </div>

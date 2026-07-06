@@ -31,7 +31,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-50">
+    <div className="admin-shell flex min-h-screen items-center justify-center bg-stone-50">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-stone-900 font-outfit">
