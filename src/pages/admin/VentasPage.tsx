@@ -109,6 +109,57 @@ async function hydrateProductoVenta(p: ProductoBusqueda): Promise<ProductoBusque
   }
 }
 
+async function hydrateLineaFromVenta(l: {
+  id?: number;
+  productoId: number;
+  varianteId?: number | null;
+  varianteLabel?: string | null;
+  presentacionId?: number | null;
+  presentacionNombre?: string | null;
+  productoNombre: string;
+  cantidad: number;
+  precioUnitarioVenta: number;
+  gananciaNetaEstimada?: number;
+}): Promise<LineaDraft> {
+  const detail = await api.getProductoPrecioVenta(l.productoId);
+  const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
+  const pres =
+    presentaciones.find((p) => p.id === l.presentacionId) ??
+    presentaciones.find((p) => p.nombre === l.presentacionNombre) ??
+    presentaciones.find(
+      (p) =>
+        p.precioVenta != null &&
+        Math.abs(p.precioVenta - l.precioUnitarioVenta) < 0.01
+    ) ??
+    defaultPresentacion(presentaciones);
+
+  const draft: LineaDraft = {
+    key: l.id != null ? `edit-${l.id}` : `edit-${l.productoId}-${Date.now()}`,
+    productoId: l.productoId,
+    varianteId: l.varianteId ?? null,
+    varianteLabel: l.varianteLabel ?? undefined,
+    presentacionId: pres?.id ?? l.presentacionId ?? null,
+    presentacionNombre: l.presentacionNombre ?? pres?.nombre,
+    presentaciones,
+    presentacionesCargadas: true,
+    nombre: l.productoNombre,
+    cantidad: l.cantidad,
+    precioUnitario: l.precioUnitarioVenta,
+    unidadVenta: l.presentacionNombre ?? pres?.nombre,
+    gananciaUnitaria: (l.gananciaNetaEstimada ?? 0) / (l.cantidad || 1),
+    modoOrigenEconomico: detail.modoOrigenEconomico,
+    costoReferencia: pres?.costoReferencia ?? detail.costoReferencia,
+    comisionPorcentaje: null,
+    costoMateriales: detail.costoMateriales,
+    manoObra: detail.manoObra,
+  };
+
+  return {
+    ...draft,
+    gananciaUnitaria: calcGananciaLinea(draft, draft.precioUnitario),
+  };
+}
+
 function lineaConPresentacion(
   base: Omit<LineaDraft, 'presentacionId' | 'presentacionNombre' | 'unidadVenta' | 'precioUnitario' | 'gananciaUnitaria' | 'costoReferencia'>,
   pres: ProductoPresentacionBusqueda | null,
@@ -220,6 +271,7 @@ export function VentasPage() {
   const [resumen, setResumen] = useState<any | null>(null);
   const [detalle, setDetalle] = useState<any | null>(null);
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [cargandoEdicion, setCargandoEdicion] = useState(false);
 
   const defaultMedioSlug = useMemo(() => {
     const fromApi = mediosPago.find((m) => m.esDefault)?.slug ?? mediosPago[0]?.slug;
@@ -518,6 +570,7 @@ export function VentasPage() {
   }, [tab, loadHistorial]);
 
   const abrirEdicion = async (id: number) => {
+    setCargandoEdicion(true);
     try {
       const v = await api.getVenta(id);
       const local = new Date(v.fechaHora);
@@ -528,45 +581,38 @@ export function VentasPage() {
       setTurnoManual(true);
       setMedioPagoSlug(v.medioPagoSlug || defaultMedioSlug);
       setNotas(v.notas || '');
-      setLineas(
-        await Promise.all(
-          v.lineas.map(async (l: any) => {
-            const detail = await api.getProductoPrecioVenta(l.productoId);
-            const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
-            const pres =
-              presentaciones.find((p) => p.nombre === l.presentacionNombre) ??
-              defaultPresentacion(presentaciones);
-            const draft: LineaDraft = {
+      setEditandoId(id);
+      setTab('nueva');
+
+      const lineasEdit = await Promise.all(
+        v.lineas.map(async (l: any) => {
+          try {
+            return await hydrateLineaFromVenta(l);
+          } catch {
+            return {
               key: `edit-${l.id}`,
               productoId: l.productoId,
               varianteId: l.varianteId ?? null,
               varianteLabel: l.varianteLabel ?? undefined,
-              presentacionId: pres?.id ?? null,
-              presentacionNombre: l.presentacionNombre ?? pres?.nombre,
-              presentaciones,
-              presentacionesCargadas: true,
+              presentacionId: l.presentacionId ?? null,
+              presentacionNombre: l.presentacionNombre ?? undefined,
+              presentaciones: [],
+              presentacionesCargadas: false,
               nombre: l.productoNombre,
               cantidad: l.cantidad,
               precioUnitario: l.precioUnitarioVenta,
-              unidadVenta: l.presentacionNombre ?? pres?.nombre,
+              unidadVenta: l.presentacionNombre ?? undefined,
               gananciaUnitaria: l.gananciaNetaEstimada / (l.cantidad || 1),
-              modoOrigenEconomico: detail.modoOrigenEconomico,
-              costoReferencia: pres?.costoReferencia ?? detail.costoReferencia,
-              comisionPorcentaje: null,
-              costoMateriales: detail.costoMateriales,
-              manoObra: detail.manoObra,
-            };
-            return {
-              ...draft,
-              gananciaUnitaria: calcGananciaLinea(draft, draft.precioUnitario),
-            };
-          })
-        )
+            } satisfies LineaDraft;
+          }
+        })
       );
-      setEditandoId(id);
-      setTab('nueva');
+      setLineas(lineasEdit);
     } catch {
       toast.error('No se pudo cargar la venta');
+      setEditandoId(null);
+    } finally {
+      setCargandoEdicion(false);
     }
   };
 
@@ -620,7 +666,10 @@ export function VentasPage() {
         <div className="space-y-4">
           {editandoId && (
             <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              <span>Editando venta #{editandoId}</span>
+              <span>
+                Editando venta #{editandoId}
+                {cargandoEdicion ? ' — cargando líneas…' : ''}
+              </span>
               <button onClick={resetForm} className="text-amber-700 hover:underline">
                 Cancelar edición
               </button>
@@ -775,7 +824,7 @@ export function VentasPage() {
                           {(l.presentaciones?.length ?? 0) > 1 ? (
                             <div className="mt-1.5 max-w-[11rem]">
                               <Select
-                                value={String(l.presentacionId ?? '')}
+                                value={String(l.presentacionId ?? l.presentaciones![0]?.id ?? '')}
                                 onChange={(e) => {
                                   const pres = l.presentaciones?.find(
                                     (p) => String(p.id) === e.target.value
@@ -812,6 +861,8 @@ export function VentasPage() {
                                 ))}
                               </Select>
                             </div>
+                          ) : !l.presentacionesCargadas ? (
+                            <div className="text-xs text-stone-400 mt-1">Cargando presentaciones…</div>
                           ) : (
                             l.unidadVenta && (
                               <div className="text-xs text-stone-400">{l.unidadVenta}</div>
@@ -1043,7 +1094,7 @@ export function VentasPage() {
                       Ver
                     </button>
                     <button
-                      onClick={() => abrirEdicion(v.id)}
+                      onClick={() => void abrirEdicion(v.id)}
                       className="p-2 text-stone-500 hover:bg-stone-100 rounded-md"
                     >
                       <Pencil className="h-4 w-4" />
