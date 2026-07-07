@@ -1,19 +1,30 @@
 import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Spinner } from '../../components/ui/Spinner';
 import { toast } from 'sonner';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname || '/';
+
+  if (isLoading) {
+    return (
+      <div className="admin-shell flex min-h-screen items-center justify-center bg-stone-50">
+        <Spinner size={40} />
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={from} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +33,7 @@ export function LoginPage() {
     try {
       await login({ email, password });
       toast.success('Sesión iniciada correctamente');
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (error) {
       toast.error('Credenciales inválidas o error de conexión');
     } finally {

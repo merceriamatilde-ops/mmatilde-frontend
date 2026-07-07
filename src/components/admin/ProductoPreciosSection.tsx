@@ -1,11 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Wand2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '../../api/client';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
+import { Select } from '../ui/Select';
 import { formatPrice } from '../../lib/utils';
+import { calcularPrecioFormula, calcularPrecioElaboracion, estimarGananciaPreview } from '../../lib/gananciaPreview';
 import { toast } from 'sonner';
+import {
+  MODOS_ORIGEN,
+  MODOS_PRECIO_REVENTA,
+  type ModoOrigenEconomico,
+  type ModoPrecio,
+} from './productoPreciosLabels';
 
 const UNIDADES = [
   { value: 'g', label: 'Gramos (g)' },
@@ -18,49 +26,6 @@ const UNIDADES = [
   { value: 'par', label: 'Pares' },
   { value: 'docena', label: 'Docenas' },
 ];
-
-const MODOS_ORIGEN = [
-  {
-    value: 'REVENTA',
-    label: 'Reventa',
-    hint: 'Makor u otro proveedor. Precio con fórmula o excepción.',
-    emoji: '🛒',
-  },
-  {
-    value: 'CONSIGNACION',
-    label: 'Consignación',
-    hint: 'Producto de un tercero; vos ponés el precio y te quedás un %.',
-    emoji: '🤝',
-  },
-  {
-    value: 'ELABORACION_PROPIA',
-    label: 'Elaboración propia',
-    hint: 'Tejido, costura, etc. Precio a mano + costos internos.',
-    emoji: '✂️',
-  },
-  {
-    value: 'SIN_COSTO',
-    label: 'Sin costo',
-    hint: 'Regalo o donación. Solo cargás precio de venta.',
-    emoji: '🎁',
-  },
-] as const;
-
-const MODOS_PRECIO_REVENTA = [
-  {
-    value: 'AUTOMATICO',
-    label: 'Automático',
-    hint: 'Costo de compra × IVA × margen (global o por categoría).',
-  },
-  {
-    value: 'EXCEPCION',
-    label: 'Excepción',
-    hint: 'Mismo cálculo pero con IVA/margen propios de este producto.',
-  },
-] as const;
-
-type ModoOrigenEconomico = (typeof MODOS_ORIGEN)[number]['value'];
-type ModoPrecio = 'AUTOMATICO' | 'EXCEPCION' | 'PRECIO_FIJO';
 
 type GananciaEstimada = {
   costoReferencia?: number | null;
@@ -96,17 +61,17 @@ const GUIA: Record<
   CONSIGNACION: {
     titulo: 'Consignación — producto de un tercero',
     pasos: [
-      'Indicá qué % se queda la mercería y quién es el titular.',
+      'Indicá % o monto fijo que retiene la mercería (se sincronizan con el precio).',
       'Cargá el precio de venta acordado (sección abajo).',
-      'La ganancia = ese % del precio; el resto es del titular.',
+      'La vista previa muestra ganancia y cuánto va al titular antes de guardar.',
     ],
   },
   ELABORACION_PROPIA: {
     titulo: 'Elaboración propia — tejido, costura, etc.',
     pasos: [
-      'Anotá costo de materiales y mano de obra (referencia interna).',
-      'Cargá el precio de venta que quieras cobrar (no tiene que sumar materiales + MO).',
-      'La ganancia estimada ≈ mano de obra.',
+      'Cargá costo de materiales y mano de obra (referencia interna, no son ganancia).',
+      'Definí el margen en % o monto fijo — eso es la ganancia de la mercería.',
+      'El precio final se calcula solo: materiales + mano de obra + margen.',
     ],
   },
   SIN_COSTO: {
@@ -135,9 +100,10 @@ function asegurarPresentacionDefault(prev: Presentacion[]): Presentacion[] {
 type ProductoPreciosSectionProps = {
   productoId: number;
   nombreProducto: string;
+  onPricesSaved?: () => void;
 };
 
-export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoPreciosSectionProps) {
+export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSaved }: ProductoPreciosSectionProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [unidadBase, setUnidadBase] = useState('');
@@ -155,12 +121,18 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
   const [margenProducto, setMargenProducto] = useState('');
   const [modoOrigen, setModoOrigen] = useState<ModoOrigenEconomico>('REVENTA');
   const [comisionTienda, setComisionTienda] = useState('');
+  const [comisionTiendaMonto, setComisionTiendaMonto] = useState('');
   const [titularConsignacion, setTitularConsignacion] = useState('');
   const [costoMateriales, setCostoMateriales] = useState('');
   const [manoObra, setManoObra] = useState('');
+  const [margenElaboracion, setMargenElaboracion] = useState('');
+  const [margenElaboracionMonto, setMargenElaboracionMonto] = useState('');
   const [gananciaEstimada, setGananciaEstimada] = useState<GananciaEstimada | null>(null);
   const [presentaciones, setPresentaciones] = useState<Presentacion[]>([]);
   const [mostrarPrecioFijoReventa, setMostrarPrecioFijoReventa] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const elaboracionSyncSource = useRef<'porcentaje' | 'monto'>('porcentaje');
+  const comisionSyncSource = useRef<'porcentaje' | 'monto'>('porcentaje');
 
   const esReventa = modoOrigen === 'REVENTA';
   const esConsignacion = modoOrigen === 'CONSIGNACION';
@@ -171,6 +143,159 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
   const usaFormula = esReventa && !esPrecioFijo;
   const usaPrecioManual = !usaFormula;
   const guia = GUIA[modoOrigen];
+
+  const markDirty = () => setDirty(true);
+
+  const costoBasePreview = useMemo(() => {
+    if (precioCompra != null && cantidadCompra) {
+      const c = parseFloat(cantidadCompra);
+      if (c > 0) return precioCompra / c;
+    }
+    return costoBase;
+  }, [precioCompra, cantidadCompra, costoBase]);
+
+  const ivaAplicadoPreview = useMemo(() => {
+    if (esExcepcion && ivaProducto !== '') {
+      const v = parseFloat(ivaProducto);
+      if (!isNaN(v)) return v;
+    }
+    return iva;
+  }, [esExcepcion, ivaProducto, iva]);
+
+  const margenAplicadoPreview = useMemo(() => {
+    if (esExcepcion && margenProducto !== '') {
+      const v = parseFloat(margenProducto);
+      if (!isNaN(v)) return v;
+    }
+    return margen;
+  }, [esExcepcion, margenProducto, margen]);
+
+  const calcularPrecioDePresentacion = (p: Presentacion) => {
+    if (usaPrecioManual) return p.precioVenta ?? null;
+    const margenPres = p.margenPorcentaje ?? margenAplicadoPreview;
+    return (
+      calcularPrecioFormula(
+        costoBasePreview,
+        p.cantidadUnidadBase,
+        ivaAplicadoPreview,
+        margenPres
+      ) ??
+      p.precioCalculado ??
+      p.precioVenta ??
+      null
+    );
+  };
+
+  const precioElaboracion = useMemo(() => {
+    if (!esElaboracion) return null;
+    return calcularPrecioElaboracion({
+      costoMateriales: costoMateriales !== '' ? parseFloat(costoMateriales) : null,
+      manoObra: manoObra !== '' ? parseFloat(manoObra) : null,
+      margenPorcentaje: margenElaboracion !== '' ? parseFloat(margenElaboracion) : null,
+      margenMonto: margenElaboracionMonto !== '' ? parseFloat(margenElaboracionMonto) : null,
+    });
+  }, [esElaboracion, costoMateriales, manoObra, margenElaboracion, margenElaboracionMonto]);
+
+  const precioVentaReferencia = useMemo(() => {
+    if (esElaboracion) return precioElaboracion;
+    const activas = presentaciones.filter((p) => p.activo);
+    const def = activas.find((p) => p.esDefault) ?? activas[0];
+    if (!def) return null;
+    return calcularPrecioDePresentacion(def);
+  }, [presentaciones, usaPrecioManual, costoBasePreview, ivaAplicadoPreview, margenAplicadoPreview, esElaboracion, precioElaboracion]);
+
+  const gananciaPreview = useMemo(() => {
+    const activas = presentaciones.filter((p) => p.activo);
+    const def = activas.find((p) => p.esDefault) ?? activas[0];
+    const costoCompra =
+      costoBasePreview != null && def
+        ? costoBasePreview * def.cantidadUnidadBase
+        : null;
+
+    return estimarGananciaPreview({
+      modoOrigen,
+      precioVenta: precioVentaReferencia,
+      comisionPorcentaje: comisionTienda !== '' ? parseFloat(comisionTienda) : null,
+      costoMateriales: costoMateriales !== '' ? parseFloat(costoMateriales) : null,
+      manoObra: manoObra !== '' ? parseFloat(manoObra) : null,
+      margenElaboracionPorcentaje: margenElaboracion !== '' ? parseFloat(margenElaboracion) : null,
+      margenElaboracionMonto: margenElaboracionMonto !== '' ? parseFloat(margenElaboracionMonto) : null,
+      costoCompraPresentacion: costoCompra,
+    });
+  }, [
+    modoOrigen,
+    precioVentaReferencia,
+    comisionTienda,
+    costoMateriales,
+    manoObra,
+    margenElaboracion,
+    margenElaboracionMonto,
+    presentaciones,
+    costoBasePreview,
+  ]);
+
+  const syncComisionFromPrecio = (precio: number | null) => {
+    if (!esConsignacion || precio == null || precio <= 0) return;
+    if (comisionSyncSource.current === 'monto') {
+      const m = parseFloat(comisionTiendaMonto);
+      if (!isNaN(m)) {
+        setComisionTienda(String(Math.round((m / precio) * 10000) / 100));
+      }
+    } else {
+      const pct = parseFloat(comisionTienda);
+      if (!isNaN(pct)) {
+        setComisionTiendaMonto(String(Math.round(((precio * pct) / 100) * 100) / 100));
+      }
+    }
+  };
+
+  useEffect(() => {
+    syncComisionFromPrecio(precioVentaReferencia);
+  }, [precioVentaReferencia, esConsignacion]);
+
+  const handleComisionPorcentaje = (value: string) => {
+    comisionSyncSource.current = 'porcentaje';
+    setComisionTienda(value);
+    markDirty();
+    const pct = parseFloat(value);
+    if (!isNaN(pct) && precioVentaReferencia && precioVentaReferencia > 0) {
+      setComisionTiendaMonto(
+        String(Math.round(((precioVentaReferencia * pct) / 100) * 100) / 100)
+      );
+    }
+  };
+
+  const handleComisionMonto = (value: string) => {
+    comisionSyncSource.current = 'monto';
+    setComisionTiendaMonto(value);
+    markDirty();
+    const monto = parseFloat(value);
+    if (!isNaN(monto) && precioVentaReferencia && precioVentaReferencia > 0) {
+      setComisionTienda(String(Math.round((monto / precioVentaReferencia) * 10000) / 100));
+    }
+  };
+
+  const handleMargenElaboracionPct = (value: string) => {
+    elaboracionSyncSource.current = 'porcentaje';
+    setMargenElaboracion(value);
+    markDirty();
+    const base = (parseFloat(costoMateriales) || 0) + (parseFloat(manoObra) || 0);
+    const pct = parseFloat(value);
+    if (!isNaN(pct) && base > 0) {
+      setMargenElaboracionMonto(String(Math.round(((base * pct) / 100) * 100) / 100));
+    }
+  };
+
+  const handleMargenElaboracionMonto = (value: string) => {
+    elaboracionSyncSource.current = 'monto';
+    setMargenElaboracionMonto(value);
+    markDirty();
+    const base = (parseFloat(costoMateriales) || 0) + (parseFloat(manoObra) || 0);
+    const monto = parseFloat(value);
+    if (!isNaN(monto) && base > 0) {
+      setMargenElaboracion(String(Math.round((monto / base) * 10000) / 100));
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -204,12 +329,35 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
       setTitularConsignacion(data.titularConsignacion || '');
       setCostoMateriales(data.costoMateriales != null ? data.costoMateriales.toString() : '');
       setManoObra(data.manoObra != null ? data.manoObra.toString() : '');
+      setMargenElaboracion(
+        data.margenElaboracionPorcentaje != null ? data.margenElaboracionPorcentaje.toString() : ''
+      );
+      setMargenElaboracionMonto(
+        data.margenElaboracionMonto != null ? data.margenElaboracionMonto.toString() : ''
+      );
       setGananciaEstimada(data.gananciaEstimada || null);
       setPresentaciones(
         origen !== 'REVENTA' || precio === 'PRECIO_FIJO'
           ? asegurarPresentacionDefault(data.presentaciones || [])
           : data.presentaciones || []
       );
+
+      const precioRef =
+        data.precioVentaFinal ??
+        (() => {
+          const pres = (data.presentaciones || []).find((p: Presentacion) => p.esDefault) ??
+            (data.presentaciones || [])[0];
+          return pres?.precioVenta ?? pres?.precioCalculado ?? null;
+        })();
+
+      if (data.comisionTiendaPorcentaje != null && precioRef) {
+        setComisionTiendaMonto(
+          String(Math.round(((precioRef * data.comisionTiendaPorcentaje) / 100) * 100) / 100)
+        );
+      } else {
+        setComisionTiendaMonto('');
+      }
+      setDirty(false);
     } catch (err: any) {
       console.error(err);
       if (err?.status === 404) {
@@ -232,6 +380,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
   };
 
   const handleOrigenChange = (origen: ModoOrigenEconomico) => {
+    markDirty();
     setModoOrigen(origen);
     if (origen !== 'REVENTA') {
       setModoPrecio('PRECIO_FIJO');
@@ -293,7 +442,23 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
     titularConsignacion: esConsignacion ? titularConsignacion.trim() || null : null,
     costoMateriales: esElaboracion && costoMateriales !== '' ? parseFloat(costoMateriales) : null,
     manoObra: esElaboracion && manoObra !== '' ? parseFloat(manoObra) : null,
-    presentaciones: presentaciones.map((p, i) => ({
+    margenElaboracionPorcentaje:
+      esElaboracion && margenElaboracion !== '' ? parseFloat(margenElaboracion) : null,
+    margenElaboracionMonto:
+      esElaboracion && margenElaboracionMonto !== '' ? parseFloat(margenElaboracionMonto) : null,
+    presentaciones: (esElaboracion
+      ? asegurarPresentacionDefault(presentaciones).map((p, i) => ({
+          id: p.id,
+          nombre: p.nombre || 'Unidad',
+          cantidadUnidadBase: p.cantidadUnidadBase,
+          precioVenta: precioElaboracion ?? p.precioVenta,
+          margenPorcentaje: null,
+          esDefault: i === 0 ? true : p.esDefault,
+          activo: p.activo,
+          orden: i,
+        }))
+      : presentaciones
+    ).map((p, i) => ({
       id: p.id,
       nombre: p.nombre,
       cantidadUnidadBase: p.cantidadUnidadBase,
@@ -315,7 +480,9 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
       setMargen(data.margenAplicado);
       setGananciaEstimada(data.gananciaEstimada || null);
       setPresentaciones(data.presentaciones || []);
+      setDirty(false);
       toast.success('Precios guardados');
+      onPricesSaved?.();
     } catch (err) {
       console.error(err);
       toast.error('Error al guardar precios');
@@ -338,6 +505,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
   };
 
   const updatePres = (index: number, patch: Partial<Presentacion>) => {
+    markDirty();
     setPresentaciones((prev) =>
       prev.map((p, i) => {
         if (i !== index) {
@@ -360,6 +528,11 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
         <p className="mt-0.5 text-xs text-stone-500 truncate" title={nombreProducto}>
           {nombreProducto}
         </p>
+        {dirty && (
+          <p className="mt-2 inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-900">
+            Cambios sin guardar — la vista previa se actualiza al instante
+          </p>
+        )}
       </div>
 
       {/* Paso 1 — Tipo */}
@@ -418,15 +591,33 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
                   type="number"
                   step="any"
                   value={comisionTienda}
-                  onChange={(e) => setComisionTienda(e.target.value)}
+                  onChange={(e) => handleComisionPorcentaje(e.target.value)}
                   placeholder="Ej: 30"
                 />
               </div>
               <div>
+                <label className="mb-1 block text-xs font-medium text-stone-600">
+                  Monto que retiene ($)
+                </label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={comisionTiendaMonto}
+                  onChange={(e) => handleComisionMonto(e.target.value)}
+                  placeholder="Ej: 1000"
+                />
+                <p className="mt-1 text-[10px] text-stone-500">
+                  Completá % o monto; se recalculan con el precio de venta.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
                 <label className="mb-1 block text-xs font-medium text-stone-600">Titular (dueño/a)</label>
                 <Input
                   value={titularConsignacion}
-                  onChange={(e) => setTitularConsignacion(e.target.value)}
+                  onChange={(e) => {
+                    setTitularConsignacion(e.target.value);
+                    markDirty();
+                  }}
                   placeholder="Ej: Tía María — cerámica"
                 />
               </div>
@@ -434,26 +625,61 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
           )}
 
           {esElaboracion && (
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-stone-600">Costo materiales ($)</label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={costoMateriales}
-                  onChange={(e) => setCostoMateriales(e.target.value)}
-                  placeholder="Ej: 4000"
-                />
+            <div className="mt-3 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-600">Costo materiales ($)</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={costoMateriales}
+                    onChange={(e) => {
+                      setCostoMateriales(e.target.value);
+                      markDirty();
+                    }}
+                    placeholder="Ej: 4000"
+                  />
+                  <p className="mt-1 text-[10px] text-stone-500">Referencia interna, no es ganancia.</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-600">Mano de obra ($)</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={manoObra}
+                    onChange={(e) => {
+                      setManoObra(e.target.value);
+                      markDirty();
+                    }}
+                    placeholder="Ej: 6000"
+                  />
+                  <p className="mt-1 text-[10px] text-stone-500">Costo de confección, no es ganancia.</p>
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-stone-600">Mano de obra ($)</label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={manoObra}
-                  onChange={(e) => setManoObra(e.target.value)}
-                  placeholder="Ej: 6000"
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-600">Margen %</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={margenElaboracion}
+                    onChange={(e) => handleMargenElaboracionPct(e.target.value)}
+                    placeholder="Ej: 30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-600">Margen ($)</label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={margenElaboracionMonto}
+                    onChange={(e) => handleMargenElaboracionMonto(e.target.value)}
+                    placeholder="Ej: 3000"
+                  />
+                  <p className="mt-1 text-[10px] text-stone-500">
+                    Completá % o monto. La ganancia de la mercería es solo este margen.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -573,13 +799,12 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-stone-600">Unidad base</label>
-              <select
+              <Select
                 value={unidadBase}
                 onChange={(e) => {
                   setUnidadBase(e.target.value);
                   setAutoDetectada(false);
                 }}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm"
               >
                 <option value="">— Elegir —</option>
                 {UNIDADES.map((u) => (
@@ -587,7 +812,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
                     {u.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-stone-600">Cantidad por paquete</label>
@@ -642,7 +867,17 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
           </p>
         )}
 
-        {usaPrecioManual && presentaciones.length <= 1 ? (
+        {esElaboracion ? (
+          <div className="mt-3 rounded-lg border border-brand-200 bg-brand-50/50 p-4">
+            <p className="text-xs font-medium text-stone-600">Precio final calculado</p>
+            <p className="text-2xl font-bold text-brand-800 mt-1">
+              {precioElaboracion != null ? formatPrice(precioElaboracion) : '—'}
+            </p>
+            <p className="text-[11px] text-stone-500 mt-2">
+              Materiales + mano de obra + margen. Se actualiza solo al cambiar los valores de arriba.
+            </p>
+          </div>
+        ) : usaPrecioManual && presentaciones.length <= 1 ? (
           <div className="mt-3 max-w-xs">
             <label className="mb-1 block text-xs font-medium text-stone-600">Precio final ($)</label>
             <Input
@@ -651,6 +886,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
               value={presentaciones[0]?.precioVenta ?? ''}
               onChange={(e) => {
                 const val = e.target.value ? parseFloat(e.target.value) : null;
+                markDirty();
                 if (presentaciones.length === 0) {
                   setPresentaciones([
                     {
@@ -734,11 +970,10 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
                     <div className="flex flex-col justify-center">
                       <span className="text-[10px] uppercase text-stone-400">Precio venta</span>
                       <span className="font-semibold text-brand-800">
-                        {p.precioVenta != null
-                          ? formatPrice(p.precioVenta)
-                          : p.precioCalculado != null
-                            ? formatPrice(p.precioCalculado)
-                            : '—'}
+                        {(() => {
+                          const live = calcularPrecioDePresentacion(p);
+                          return live != null ? formatPrice(live) : '—';
+                        })()}
                       </span>
                     </div>
                   )}
@@ -768,18 +1003,45 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
         )}
       </section>
 
-      {/* Ganancia estimada */}
-      {gananciaEstimada?.gananciaNetaEstimada != null && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4">
-          <p className="text-sm font-semibold text-emerald-900">
-            Ganancia estimada al vender: {formatPrice(gananciaEstimada.gananciaNetaEstimada)}
-            {gananciaEstimada.margenSobreVentaPorcentaje != null && (
-              <span className="ml-2 font-normal text-emerald-700">
-                ({gananciaEstimada.margenSobreVentaPorcentaje.toFixed(0)}% del precio)
-              </span>
-            )}
-          </p>
-          <p className="mt-1 text-xs text-stone-600">{gananciaEstimada.nota}</p>
+      {/* Ganancia estimada — vista previa en vivo */}
+      {(gananciaPreview || esConsignacion || esElaboracion || esSinCosto || usaPrecioManual) && (
+        <div
+          className={`rounded-lg border p-4 ${
+            dirty
+              ? 'border-amber-300 bg-amber-50'
+              : 'border-emerald-300 bg-emerald-50'
+          }`}
+        >
+          {dirty && (
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+              Vista previa (sin guardar)
+            </p>
+          )}
+          {gananciaPreview?.gananciaNetaEstimada != null ? (
+            <p
+              className={`text-sm font-semibold ${
+                dirty ? 'text-amber-900' : 'text-emerald-900'
+              }`}
+            >
+              Ganancia estimada al vender: {formatPrice(gananciaPreview.gananciaNetaEstimada)}
+              {gananciaPreview.margenSobreVentaPorcentaje != null && (
+                <span
+                  className={`ml-2 font-normal ${
+                    dirty ? 'text-amber-700' : 'text-emerald-700'
+                  }`}
+                >
+                  ({gananciaPreview.margenSobreVentaPorcentaje.toFixed(0)}% del precio)
+                </span>
+              )}
+            </p>
+          ) : (
+            <p className={`text-sm font-medium ${dirty ? 'text-amber-900' : 'text-emerald-900'}`}>
+              Cargá el precio de venta para ver la ganancia estimada en vivo.
+            </p>
+          )}
+          {gananciaPreview?.nota && (
+            <p className="mt-1 text-xs text-stone-600">{gananciaPreview.nota}</p>
+          )}
         </div>
       )}
 
@@ -808,6 +1070,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto }: ProductoP
                   setMargen(data.margenAplicado);
                   setGananciaEstimada(data.gananciaEstimada || null);
                   toast.success('Precios recalculados');
+                  onPricesSaved?.();
                 } catch {
                   toast.error('Error al recalcular');
                 }

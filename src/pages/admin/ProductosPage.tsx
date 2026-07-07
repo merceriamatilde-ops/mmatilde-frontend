@@ -4,6 +4,7 @@ import { ProductosTable } from '../../components/admin/ProductosTable';
 import { ProductoModal } from '../../components/admin/ProductoModal';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Select } from '../../components/ui/Select';
 import { Search, Plus } from 'lucide-react';
 import { Spinner } from '../../components/ui/Spinner';
 
@@ -14,6 +15,7 @@ export function ProductosPage() {
   
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [scrollToPrecios, setScrollToPrecios] = useState(false);
 
   const [filters, setFilters] = useState({
     q: '',
@@ -58,13 +60,15 @@ export function ProductosPage() {
 
   const handleNewProduct = () => {
     setEditingProduct(null);
+    setScrollToPrecios(false);
     setModalOpen(true);
   };
 
-  const handleEditProduct = async (id: number) => {
+  const handleEditProduct = async (id: number, opts?: { scrollToPrecios?: boolean }) => {
     try {
       const prod = await api.getProductoAdmin(id);
       setEditingProduct(prod);
+      setScrollToPrecios(!!opts?.scrollToPrecios);
       setModalOpen(true);
     } catch (err) {
       console.error(err);
@@ -104,8 +108,7 @@ export function ProductosPage() {
           
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Categoría</label>
-            <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+            <Select
               value={filters.categoriaId}
               onChange={e => setFilters(prev => ({ ...prev, categoriaId: e.target.value, subcategoriaId: '' }))}
             >
@@ -113,13 +116,12 @@ export function ProductosPage() {
               {categorias.map(c => (
                 <option key={c.id} value={c.id}>{c.nombre}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
-            <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50"
+            <Select
               value={filters.subcategoriaId}
               onChange={e => setFilters(prev => ({ ...prev, subcategoriaId: e.target.value }))}
               disabled={!filters.categoriaId || subcategorias.length === 0}
@@ -128,33 +130,31 @@ export function ProductosPage() {
               {subcategorias.map((s: any) => (
                 <option key={s.id} value={s.id}>{s.nombre}</option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="w-48">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Proveedor</label>
-            <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+            <Select
               value={filters.proveedorId}
               onChange={e => setFilters(prev => ({ ...prev, proveedorId: e.target.value }))}
             >
               <option value="">Todos</option>
               <option value="1">Makor</option>
               <option value="2">Manual / Otros</option>
-            </select>
+            </Select>
           </div>
 
           <div className="w-40">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Estado</label>
-            <select 
-              className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+            <Select
               value={filters.activo}
               onChange={e => setFilters(prev => ({ ...prev, activo: e.target.value }))}
             >
               <option value="">Todos</option>
               <option value="true">Visibles</option>
               <option value="false">Ocultos</option>
-            </select>
+            </Select>
           </div>
 
           <Button type="submit">Filtrar</Button>
@@ -175,6 +175,7 @@ export function ProductosPage() {
           onPageChange={(p: number) => setFilters(prev => ({ ...prev, page: p }))}
           onRefresh={loadData}
           onEdit={handleEditProduct}
+          onEditPrecios={(id: number) => handleEditProduct(id, { scrollToPrecios: true })}
         />
       </div>
 
@@ -182,7 +183,12 @@ export function ProductosPage() {
         <ProductoModal 
           categorias={categorias}
           product={editingProduct}
-          onClose={() => setModalOpen(false)}
+          scrollToPrecios={scrollToPrecios}
+          onPricesSaved={loadData}
+          onClose={() => {
+            setModalOpen(false);
+            setScrollToPrecios(false);
+          }}
           onSaved={() => {
             setModalOpen(false);
             loadData();

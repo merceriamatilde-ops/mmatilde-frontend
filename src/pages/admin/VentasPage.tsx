@@ -6,8 +6,16 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { InputWithIcon } from '../../components/ui/InputWithIcon';
 import { Select } from '../../components/ui/Select';
+import {
+  DEFAULT_TURNOS,
+  inferirTurnoSlug,
+  turnoLabel,
+  turnosActivosOrdenados,
+  type TurnoVentaItem,
+} from '../../lib/turnosVenta';
+import { estimarGananciaPreview } from '../../lib/gananciaPreview';
+import type { ModoOrigenEconomico } from '../../components/admin/productoPreciosLabels';
 
-type Turno = 'MANANA' | 'TARDE';
 type SortField = 'fecha' | 'total' | 'ganancia' | 'items' | 'turno' | 'medio';
 type SortDir = 'asc' | 'desc';
 
@@ -23,11 +31,23 @@ type MedioPagoItem = {
 type LineaDraft = {
   key: string;
   productoId: number;
+  varianteId?: number | null;
+  varianteLabel?: string;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
   unidadVenta?: string;
   gananciaUnitaria?: number;
+  modoOrigenEconomico?: string;
+  costoReferencia?: number | null;
+  comisionPorcentaje?: number | null;
+  costoMateriales?: number | null;
+  manoObra?: number | null;
+};
+
+type ProductoVarianteBusqueda = {
+  id: number;
+  label: string;
 };
 
 type ProductoBusqueda = {
@@ -37,12 +57,33 @@ type ProductoBusqueda = {
   precioVenta?: number;
   unidadVenta?: string;
   gananciaNetaEstimada?: number;
+  modoOrigenEconomico?: string;
+  costoReferencia?: number | null;
+  ivaPorcentaje?: number | null;
+  costoMateriales?: number | null;
+  manoObra?: number | null;
+  variantes?: ProductoVarianteBusqueda[];
 };
 
 const fmt = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
-const turnoLabel = (t: string) => (t === 'MANANA' ? 'Mañana' : 'Tarde');
+function calcGananciaLinea(l: LineaDraft, precio: number): number {
+  const modo = (l.modoOrigenEconomico || 'REVENTA') as ModoOrigenEconomico;
+
+  if ((modo === 'REVENTA' || modo === 'ELABORACION_PROPIA') && l.costoReferencia != null) {
+    return Math.round((precio - l.costoReferencia) * 100) / 100;
+  }
+
+  const preview = estimarGananciaPreview({
+    modoOrigen: modo,
+    precioVenta: precio,
+    comisionPorcentaje: l.comisionPorcentaje,
+    costoMateriales: l.costoMateriales,
+    manoObra: l.manoObra,
+  });
+  return preview?.gananciaNetaEstimada ?? 0;
+}
 
 function todayInput() {
   const d = new Date();
@@ -54,11 +95,6 @@ function nowTimeInput() {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function inferTurnoFromTime(time: string): Turno {
-  const hour = parseInt(time.split(':')[0] || '0', 10);
-  return hour < 14 ? 'MANANA' : 'TARDE';
 }
 
 function toOffsetIso(fecha: string, hora: string) {
@@ -87,10 +123,12 @@ const SORT_OPTIONS: { value: SortField; label: string }[] = [
 export function VentasPage() {
   const [tab, setTab] = useState<'nueva' | 'historial'>('nueva');
   const [mediosPago, setMediosPago] = useState<MedioPagoItem[]>(FALLBACK_MEDIOS);
+  const [turnosVenta, setTurnosVenta] = useState<TurnoVentaItem[]>(DEFAULT_TURNOS);
 
   const [fecha, setFecha] = useState(todayInput);
   const [hora, setHora] = useState(nowTimeInput);
-  const [turno, setTurno] = useState<Turno>(inferTurnoFromTime(nowTimeInput()));
+  const [turno, setTurno] = useState(() => inferirTurnoSlug(nowTimeInput(), DEFAULT_TURNOS));
+  const [turnoManual, setTurnoManual] = useState(false);
   const [medioPagoSlug, setMedioPagoSlug] = useState('efectivo');
   const [notas, setNotas] = useState('');
   const [lineas, setLineas] = useState<LineaDraft[]>([]);
@@ -100,11 +138,12 @@ export function VentasPage() {
   const [resultados, setResultados] = useState<ProductoBusqueda[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [productoPendiente, setProductoPendiente] = useState<ProductoBusqueda | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const [filtroDesde, setFiltroDesde] = useState(todayInput());
   const [filtroHasta, setFiltroHasta] = useState(todayInput());
-  const [filtroTurno, setFiltroTurno] = useState<Turno | ''>('');
+  const [filtroTurno, setFiltroTurno] = useState('');
   const [filtroQ, setFiltroQ] = useState('');
   const [ordenar, setOrdenar] = useState<SortField>('fecha');
   const [direccion, setDireccion] = useState<SortDir>('desc');
@@ -120,13 +159,22 @@ export function VentasPage() {
   }, [mediosPago]);
 
   const mediosActivos = useMemo(() => mediosPago.filter((m) => m.activo), [mediosPago]);
+  const turnosActivos = useMemo(() => turnosActivosOrdenados(turnosVenta), [turnosVenta]);
+  const turnoActual = useMemo(
+    () => turnosVenta.find((t) => t.slug === turno) ?? turnosActivos[0],
+    [turno, turnosVenta, turnosActivos]
+  );
 
   const total = useMemo(
     () => lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0),
     [lineas]
   );
   const gananciaTotal = useMemo(
-    () => lineas.reduce((acc, l) => acc + (l.gananciaUnitaria ?? 0) * l.cantidad, 0),
+    () =>
+      lineas.reduce(
+        (acc, l) => acc + calcGananciaLinea(l, l.precioUnitario) * l.cantidad,
+        0
+      ),
     [lineas]
   );
 
@@ -148,19 +196,19 @@ export function VentasPage() {
   }, []);
 
   useEffect(() => {
-    if (tab !== 'nueva' || editandoId) return;
-
-    const tick = () => {
-      const t = nowTimeInput();
-      setHora(t);
-      setTurno(inferTurnoFromTime(t));
-      setFecha(todayInput());
-    };
-
-    tick();
-    const id = window.setInterval(tick, 30_000);
-    return () => window.clearInterval(id);
-  }, [tab, editandoId]);
+    api.getTurnosVentaActivos()
+      .then((data) => {
+        if (data?.length) {
+          setTurnosVenta(data);
+          setTurno((prev) =>
+            data.some((t: TurnoVentaItem) => t.slug === prev)
+              ? prev
+              : inferirTurnoSlug(hora, data)
+          );
+        }
+      })
+      .catch(() => setTurnosVenta(DEFAULT_TURNOS));
+  }, []);
 
   useEffect(() => {
     if (!editandoId && defaultMedioSlug && !mediosActivos.some((m) => m.slug === medioPagoSlug)) {
@@ -169,8 +217,25 @@ export function VentasPage() {
   }, [defaultMedioSlug, editandoId, medioPagoSlug, mediosActivos]);
 
   useEffect(() => {
-    setTurno(inferTurnoFromTime(hora));
-  }, [hora]);
+    if (tab !== 'nueva' || editandoId) return;
+
+    const tick = () => {
+      const t = nowTimeInput();
+      setHora(t);
+      if (!turnoManual) setTurno(inferirTurnoSlug(t, turnosVenta));
+      setFecha(todayInput());
+    };
+
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, [tab, editandoId, turnoManual, turnosVenta]);
+
+  useEffect(() => {
+    if (!turnoManual) {
+      setTurno(inferirTurnoSlug(hora, turnosVenta));
+    }
+  }, [hora, turnoManual, turnosVenta]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -204,8 +269,10 @@ export function VentasPage() {
 
   const resetForm = () => {
     setFecha(todayInput());
-    setHora(nowTimeInput());
-    setTurno(inferTurnoFromTime(nowTimeInput()));
+    const t = nowTimeInput();
+    setHora(t);
+    setTurnoManual(false);
+    setTurno(inferirTurnoSlug(t, turnosVenta));
     setMedioPagoSlug(defaultMedioSlug);
     setNotas('');
     setLineas([]);
@@ -214,12 +281,23 @@ export function VentasPage() {
     setTab('nueva');
   };
 
-  const agregarProducto = (p: ProductoBusqueda) => {
+  const agregarProducto = (
+    p: ProductoBusqueda,
+    variante?: ProductoVarianteBusqueda | null
+  ) => {
+    const varianteId = variante?.id ?? null;
+    const varianteLabel = variante?.label;
+    const lineKey = `${p.id}-${varianteId ?? 'base'}`;
+
     setLineas((prev) => {
-      const existing = prev.find((l) => l.productoId === p.id);
+      const existing = prev.find(
+        (l) => l.productoId === p.id && (l.varianteId ?? null) === varianteId
+      );
       if (existing) {
         return prev.map((l) =>
-          l.productoId === p.id ? { ...l, cantidad: l.cantidad + 1 } : l
+          l.productoId === p.id && (l.varianteId ?? null) === varianteId
+            ? { ...l, cantidad: l.cantidad + 1 }
+            : l
         );
       }
       if (!p.precioVenta) {
@@ -229,18 +307,36 @@ export function VentasPage() {
       return [
         ...prev,
         {
-          key: `${p.id}-${Date.now()}`,
+          key: `${lineKey}-${Date.now()}`,
           productoId: p.id,
+          varianteId,
+          varianteLabel,
           nombre: p.nombre,
           cantidad: 1,
           precioUnitario: p.precioVenta,
           unidadVenta: p.unidadVenta,
           gananciaUnitaria: p.gananciaNetaEstimada,
+          modoOrigenEconomico: p.modoOrigenEconomico,
+          costoReferencia: p.costoReferencia,
+          comisionPorcentaje: null,
+          costoMateriales: p.costoMateriales,
+          manoObra: p.manoObra,
         },
       ];
     });
     setQuery('');
     setShowResults(false);
+    setProductoPendiente(null);
+  };
+
+  const seleccionarProducto = (p: ProductoBusqueda) => {
+    const variantes = (p.variantes ?? []).filter((v) => v.id);
+    if (variantes.length > 1) {
+      setProductoPendiente(p);
+      setShowResults(false);
+      return;
+    }
+    agregarProducto(p, variantes.length === 1 ? variantes[0] : null);
   };
 
   const guardarVenta = async () => {
@@ -261,6 +357,7 @@ export function VentasPage() {
         notas: notas || null,
         lineas: lineas.map((l) => ({
           productoId: l.productoId,
+          varianteId: l.varianteId ?? null,
           cantidad: l.cantidad,
           precioUnitario: l.precioUnitario,
         })),
@@ -294,19 +391,18 @@ export function VentasPage() {
       if (filtroTurno) params.turno = filtroTurno;
       if (filtroQ.trim()) params.q = filtroQ.trim();
 
-      const [lista, resManana, resTarde] = await Promise.all([
-        api.getVentas(params),
-        api.getVentaResumen(filtroDesde, 'MANANA'),
-        api.getVentaResumen(filtroDesde, 'TARDE'),
-      ]);
+      const lista = await api.getVentas(params);
+      const resumenes = await Promise.all(
+        turnosActivos.map((t) => api.getVentaResumen(filtroDesde, t.slug))
+      );
       setVentas(lista);
-      setResumen({ manana: resManana, tarde: resTarde });
+      setResumen(resumenes);
     } catch {
       toast.error('Error al cargar historial');
     } finally {
       setLoadingHistorial(false);
     }
-  }, [filtroDesde, filtroHasta, filtroTurno, filtroQ, ordenar, direccion]);
+  }, [filtroDesde, filtroHasta, filtroTurno, filtroQ, ordenar, direccion, turnosActivos]);
 
   useEffect(() => {
     if (tab === 'historial') loadHistorial();
@@ -320,12 +416,15 @@ export function VentasPage() {
       setFecha(`${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`);
       setHora(`${pad(local.getHours())}:${pad(local.getMinutes())}`);
       setTurno(v.turno);
+      setTurnoManual(true);
       setMedioPagoSlug(v.medioPagoSlug || defaultMedioSlug);
       setNotas(v.notas || '');
       setLineas(
         v.lineas.map((l: any) => ({
           key: `edit-${l.id}`,
           productoId: l.productoId,
+          varianteId: l.varianteId ?? null,
+          varianteLabel: l.varianteLabel ?? undefined,
           nombre: l.productoNombre,
           cantidad: l.cantidad,
           precioUnitario: l.precioUnitarioVenta,
@@ -401,7 +500,7 @@ export function VentasPage() {
               showResults ? 'overflow-visible' : ''
             }`}
           >
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-wrap items-start gap-3">
               <div className="shrink-0">
                 <label className="admin-field-label">Fecha</label>
                 <Input
@@ -424,12 +523,23 @@ export function VentasPage() {
                 <label className="admin-field-label">Turno</label>
                 <Select
                   value={turno}
-                  onChange={(e) => setTurno(e.target.value as Turno)}
+                  onChange={(e) => {
+                    setTurnoManual(true);
+                    setTurno(e.target.value);
+                  }}
                   className="admin-select-compact"
                 >
-                  <option value="MANANA">Mañana</option>
-                  <option value="TARDE">Tarde</option>
+                  {turnosActivos.map((t) => (
+                    <option key={t.slug} value={t.slug}>
+                      {t.nombre}
+                    </option>
+                  ))}
                 </Select>
+                {turnoActual && (
+                  <p className="text-[11px] text-stone-400 mt-1 max-w-[11rem] leading-tight">
+                    {turnoManual ? 'Manual' : 'Auto'} · {turnoActual.descripcionHorario}
+                  </p>
+                )}
               </div>
               <div className="shrink-0 min-w-[10rem]">
                 <label className="admin-field-label">
@@ -465,7 +575,7 @@ export function VentasPage() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => agregarProducto(p)}
+                      onClick={() => seleccionarProducto(p)}
                       className="w-full text-left px-4 py-3 transition-colors hover:bg-brand-50/60 border-b border-stone-100 last:border-0"
                     >
                       <div className="font-medium text-stone-900 text-sm">{p.nombre}</div>
@@ -479,6 +589,36 @@ export function VentasPage() {
               )}
               {buscando && <p className="text-xs text-stone-400 mt-1">Buscando...</p>}
             </div>
+
+            {productoPendiente && (
+              <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">Elegí la variante</p>
+                    <p className="text-xs text-stone-500 mt-0.5">{productoPendiente.nombre}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProductoPendiente(null)}
+                    className="text-xs text-stone-500 hover:text-stone-800"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(productoPendiente.variantes ?? []).map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => agregarProducto(productoPendiente, v)}
+                      className="px-3 py-2 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-800 hover:border-brand-500 hover:bg-brand-50 transition-colors"
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {lineas.length > 0 && (
               <div className="border border-stone-200 rounded-lg overflow-hidden">
@@ -497,6 +637,9 @@ export function VentasPage() {
                       <tr key={l.key} className="border-t border-stone-100">
                         <td className="px-3 py-2">
                           <div className="font-medium text-stone-900">{l.nombre}</div>
+                          {l.varianteLabel && (
+                            <div className="text-xs text-brand-700">{l.varianteLabel}</div>
+                          )}
                           {l.unidadVenta && (
                             <div className="text-xs text-stone-400">{l.unidadVenta}</div>
                           )}
@@ -526,15 +669,20 @@ export function VentasPage() {
                             step="1"
                             className="text-right h-9"
                             value={l.precioUnitario}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const precio = parseFloat(e.target.value) || 0;
                               setLineas((prev) =>
                                 prev.map((x) =>
                                   x.key === l.key
-                                    ? { ...x, precioUnitario: parseFloat(e.target.value) || 0 }
+                                    ? {
+                                        ...x,
+                                        precioUnitario: precio,
+                                        gananciaUnitaria: calcGananciaLinea(x, precio),
+                                      }
                                     : x
                                 )
-                              )
-                            }
+                              );
+                            }}
                           />
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
@@ -567,9 +715,14 @@ export function VentasPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 border-t border-stone-100">
               <div>
                 <div className="text-2xl font-bold text-stone-900">{fmt(total)}</div>
-                {gananciaTotal > 0 && (
-                  <div className="text-sm text-emerald-700">
-                    Ganancia estimada: {fmt(gananciaTotal)}
+                {gananciaTotal !== 0 && (
+                  <div
+                    className={`text-sm ${
+                      gananciaTotal > 0 ? 'text-emerald-700' : 'text-red-600'
+                    }`}
+                  >
+                    {gananciaTotal > 0 ? 'Ganancia estimada' : 'Pérdida estimada'}:{' '}
+                    {fmt(Math.abs(gananciaTotal))}
                   </div>
                 )}
               </div>
@@ -587,16 +740,14 @@ export function VentasPage() {
 
       {tab === 'historial' && (
         <div className="space-y-4">
-          {resumen && filtroDesde === filtroHasta && (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {(['manana', 'tarde'] as const).map((k) => {
-                const r = resumen[k];
-                return (
-                  <div key={k} className="bg-white rounded-xl border border-stone-200 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-stone-700 mb-2">
-                      <BarChart3 className="h-4 w-4 text-brand-700" />
-                      Turno {turnoLabel(r.turno)} — {r.fecha}
-                    </div>
+          {Array.isArray(resumen) && resumen.length > 0 && filtroDesde === filtroHasta && (
+            <div className={`grid gap-3 ${resumen.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              {resumen.map((r) => (
+                <div key={r.turno} className="bg-white rounded-xl border border-stone-200 p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-stone-700 mb-2">
+                    <BarChart3 className="h-4 w-4 text-brand-700" />
+                    Turno {turnoLabel(r.turno, turnosVenta)} — {r.fecha}
+                  </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-stone-500">Ventas</span>
@@ -616,8 +767,7 @@ export function VentasPage() {
                       </div>
                     </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           )}
 
@@ -635,11 +785,14 @@ export function VentasPage() {
                 <label className="admin-field-label">Turno</label>
                 <Select
                   value={filtroTurno}
-                  onChange={(e) => setFiltroTurno(e.target.value as Turno | '')}
+                  onChange={(e) => setFiltroTurno(e.target.value)}
                 >
                   <option value="">Todos</option>
-                  <option value="MANANA">Mañana</option>
-                  <option value="TARDE">Tarde</option>
+                  {turnosActivos.map((t) => (
+                    <option key={t.slug} value={t.slug}>
+                      {t.nombre}
+                    </option>
+                  ))}
                 </Select>
               </div>
               <div className="col-span-2">
@@ -693,7 +846,7 @@ export function VentasPage() {
                         })}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-                        {turnoLabel(v.turno)}
+                        {turnoLabel(v.turno, turnosVenta)}
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                         {v.medioPagoNombre || v.medioPagoSlug}

@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Spinner } from '../../components/ui/Spinner';
+import { DEFAULT_TURNOS, turnoLabel, type TurnoVentaItem } from '../../lib/turnosVenta';
 
 type PeriodoPreset = 'hoy' | 'semana' | 'mes' | 'mes_anterior' | 'custom';
 
@@ -27,7 +28,7 @@ const fmt = (n: number) =>
 
 const fmtPct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
 
-const TURNO_COLORS = ['#8B5E3C', '#C4A882'];
+const TURNO_COLORS = ['#8B5E3C', '#C4A882', '#5B8A72', '#9B6B9E', '#4A7C9B'];
 
 function pad(n: number) {
   return String(n).padStart(2, '0');
@@ -63,10 +64,6 @@ function rangoPreset(preset: PeriodoPreset): { desde: string; hasta: string } {
   }
 
   return { desde: hasta, hasta };
-}
-
-function turnoLabel(t: string) {
-  return t === 'MANANA' ? 'Mañana' : t === 'TARDE' ? 'Tarde' : t;
 }
 
 function origenLabel(o: string) {
@@ -120,11 +117,15 @@ export function EstadisticasPage() {
   const [turno, setTurno] = useState('');
   const [medioPago, setMedioPago] = useState('');
   const [medios, setMedios] = useState<any[]>([]);
+  const [turnos, setTurnos] = useState<TurnoVentaItem[]>(DEFAULT_TURNOS);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.getMediosPagoActivos().then(setMedios).catch(() => {});
+    api.getTurnosVentaActivos()
+      .then((data) => data?.length && setTurnos(data))
+      .catch(() => {});
   }, []);
 
   const applyPreset = (p: PeriodoPreset) => {
@@ -171,10 +172,10 @@ export function EstadisticasPage() {
     () =>
       (data?.porTurno ?? []).map((t: any) => ({
         ...t,
-        nombre: turnoLabel(t.turno),
+        nombre: turnoLabel(t.turno, turnos),
         value: t.facturacion,
       })),
-    [data]
+    [data, turnos]
   );
 
   const porCategoriaChart = useMemo(
@@ -254,8 +255,11 @@ export function EstadisticasPage() {
               onChange={(e) => setTurno(e.target.value)}
             >
               <option value="">Todos</option>
-              <option value="MANANA">Mañana</option>
-              <option value="TARDE">Tarde</option>
+              {turnos.filter((t) => t.activo).map((t) => (
+                <option key={t.slug} value={t.slug}>
+                  {t.nombre}
+                </option>
+              ))}
             </Select>
           </div>
           <div className="shrink-0 min-w-[10rem]">

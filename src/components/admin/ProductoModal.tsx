@@ -3,6 +3,7 @@ import { X, UploadCloud, Image as ImageIcon, Loader2, Plus, Trash2, Search } fro
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
+import { Select } from '../ui/Select';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
 import { ProductoPreciosSection } from './ProductoPreciosSection';
@@ -12,9 +13,11 @@ interface ProductoModalProps {
   categorias: any[];
   onClose: () => void;
   onSaved: () => void;
+  onPricesSaved?: () => void;
+  scrollToPrecios?: boolean;
 }
 
-export function ProductoModal({ product, categorias, onClose, onSaved }: ProductoModalProps) {
+export function ProductoModal({ product, categorias, onClose, onSaved, onPricesSaved, scrollToPrecios }: ProductoModalProps) {
   const isEditing = !!product;
 
   const [loading, setLoading] = useState(false);
@@ -48,6 +51,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const preciosSectionRef = useRef<HTMLDivElement>(null);
   const isMakorProduct = isEditing && product?.proveedorId === 1;
 
   useEffect(() => {
@@ -120,6 +124,14 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
       setSelectedTagIds([]);
     }
   }, [product, categorias]);
+
+  useEffect(() => {
+    if (!scrollToPrecios || !product?.id) return;
+    const timer = setTimeout(() => {
+      preciosSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [scrollToPrecios, product?.id]);
 
   const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const catId = e.target.value;
@@ -332,9 +344,52 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
               </div>
             )}
             
+            {isMakorProduct ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">Código Makor</label>
+                  <Input disabled value={formData.codigo} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">Precio Base</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    disabled
+                    placeholder="Ej: 1500.50"
+                    value={formData.precioBase}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">Categoría</label>
+                  <Select disabled value={formData.categoriaId} onChange={handleCategoriaChange}>
+                    <option value="">Seleccionar...</option>
+                    {categorias.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
+                  <Select
+                    disabled={subcategorias.length === 0}
+                    value={formData.subcategoriaId}
+                    onChange={(e) => setFormData({ ...formData, subcategoriaId: e.target.value })}
+                  >
+                    <option value="">Ninguna</option>
+                    {subcategorias.map((s: any) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                {!isMakorProduct && (
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Nombre *</label>
                   <Input 
@@ -343,47 +398,42 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                     onChange={e => setFormData({...formData, nombre: e.target.value})} 
                   />
                 </div>
-                )}
 
-                {isMakorProduct && (
-                <div>
-                  <label className="text-sm font-medium text-stone-700 mb-1 block">Código Makor</label>
-                  <Input disabled value={formData.codigo} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-stone-700 mb-1 block">Código / SKU</label>
+                    <Input 
+                      placeholder="Se autogenera si se deja vacío"
+                      value={formData.codigo} 
+                      onChange={e => setFormData({...formData, codigo: e.target.value})} 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-stone-700 mb-1 block">Precio Base</label>
+                    <Input 
+                      type="number"
+                      step="0.01"
+                      placeholder="Ej: 1500.50"
+                      value={formData.precioBase} 
+                      onChange={e => setFormData({...formData, precioBase: e.target.value})} 
+                    />
+                  </div>
                 </div>
-                )}
 
-                {!isMakorProduct && (
-                <div>
-                  <label className="text-sm font-medium text-stone-700 mb-1 block">Código / SKU</label>
-                  <Input 
-                    placeholder="Se autogenera si se deja vacío"
-                    value={formData.codigo} 
-                    onChange={e => setFormData({...formData, codigo: e.target.value})} 
-                  />
-                </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-stone-700 mb-1 block">Categoría *</label>
-                    <select 
-                      required={!isMakorProduct}
-                      disabled={isMakorProduct}
-                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 disabled:bg-stone-50"
-                      value={formData.categoriaId}
-                      onChange={handleCategoriaChange}
-                    >
+                    <Select required value={formData.categoriaId} onChange={handleCategoriaChange}>
                       <option value="">Seleccionar...</option>
                       {categorias.map(c => (
                         <option key={c.id} value={c.id}>{c.nombre}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-stone-700 mb-1 block">Subcategoría</label>
-                    <select 
-                      disabled={isMakorProduct || subcategorias.length === 0}
-                      className="flex h-10 w-full rounded-md border border-stone-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 disabled:opacity-50 disabled:bg-stone-50"
+                    <Select
+                      disabled={subcategorias.length === 0}
                       value={formData.subcategoriaId}
                       onChange={e => setFormData({...formData, subcategoriaId: e.target.value})}
                     >
@@ -391,24 +441,11 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                       {subcategorias.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.nombre}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-stone-700 mb-1 block">Precio Base</label>
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    disabled={isMakorProduct}
-                    placeholder="Ej: 1500.50"
-                    value={formData.precioBase} 
-                    onChange={e => setFormData({...formData, precioBase: e.target.value})} 
-                  />
                 </div>
               </div>
 
-              {!isMakorProduct && (
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-stone-700 mb-1 block">Imagen</label>
@@ -445,8 +482,8 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                   />
                 </div>
               </div>
-              )}
             </div>
+            )}
 
             <input 
               type="file" 
@@ -485,8 +522,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                     return (
                       <div key={i} className={`flex flex-wrap items-center gap-3 p-3 rounded-lg border ${isDuplicate ? 'border-red-400 bg-red-50/50 shadow-sm' : 'border-stone-200 bg-stone-50'}`}>
                       <div className="w-full md:w-auto flex-1 min-w-[120px]">
-                        <select 
-                          className="flex h-10 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                        <Select
                           value={v.colorId || ''}
                           onChange={(e) => {
                             const newV = [...variantes];
@@ -498,7 +534,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
                           {colores.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                       <div className="w-1/3 md:w-auto md:w-24">
                         <Input 
@@ -566,10 +602,11 @@ export function ProductoModal({ product, categorias, onClose, onSaved }: Product
             </div>
 
             {isEditing && product?.id && (
-              <div className="pt-4 border-t border-stone-100">
+              <div ref={preciosSectionRef} className="pt-4 border-t border-stone-100">
                 <ProductoPreciosSection
                   productoId={product.id}
                   nombreProducto={product.nombre || formData.nombre}
+                  onPricesSaved={onPricesSaved}
                 />
               </div>
             )}

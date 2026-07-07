@@ -16,14 +16,9 @@
   }
 
   .admin-select {
-    @apply flex h-10 w-full appearance-none rounded-md border border-stone-300 bg-white px-3 pr-10 text-sm text-stone-900 shadow-sm;
+    @apply flex h-10 w-full appearance-none rounded-md border border-stone-300 bg-white px-3 pr-3 text-sm text-stone-900 shadow-sm;
     @apply focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent;
     @apply disabled:cursor-not-allowed disabled:opacity-50;
-    background-image: none;
-  }
-
-  .admin-select option {
-    @apply text-stone-900 bg-white py-2;
   }
 
   .admin-input-compact-date {

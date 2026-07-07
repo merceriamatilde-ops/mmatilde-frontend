@@ -11,6 +11,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (data: any) => Promise<void>;
   logout: () => void;
 };
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('mmatilde_user');
@@ -26,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser && token) {
       setUser(JSON.parse(savedUser));
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (data: any) => {
@@ -43,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

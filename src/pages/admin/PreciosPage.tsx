@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { api } from '../../api/client';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Select } from '../../components/ui/Select';
 import { toast } from 'sonner';
 
 export function PreciosPage() {
@@ -132,10 +133,9 @@ export function PreciosPage() {
         </p>
 
         <div className="mt-4 grid gap-3 rounded-lg border border-dashed border-stone-200 bg-stone-50 p-4 sm:grid-cols-4">
-          <select
+          <Select
             value={nuevaRegla.categoriaId}
             onChange={(e) => setNuevaRegla({ ...nuevaRegla, categoriaId: e.target.value, subcategoriaId: '' })}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm"
           >
             <option value="">Categoría</option>
             {categorias.map((c) => (
@@ -143,11 +143,10 @@ export function PreciosPage() {
                 {c.nombre}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={nuevaRegla.subcategoriaId}
             onChange={(e) => setNuevaRegla({ ...nuevaRegla, subcategoriaId: e.target.value })}
-            className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm"
             disabled={!nuevaRegla.categoriaId}
           >
             <option value="">Toda la categoría</option>
@@ -156,7 +155,7 @@ export function PreciosPage() {
                 {s.nombre}
               </option>
             ))}
-          </select>
+          </Select>
           <Input
             type="number"
             placeholder="Margen %"

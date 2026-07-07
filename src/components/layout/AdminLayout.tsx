@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { Spinner } from '../ui/Spinner';
 import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3 } from 'lucide-react';
 
 export function AdminLayout() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  if (isLoading) {
+    return (
+      <div className="admin-shell flex h-screen items-center justify-center bg-stone-100">
+        <Spinner size={40} />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   const navItems = [

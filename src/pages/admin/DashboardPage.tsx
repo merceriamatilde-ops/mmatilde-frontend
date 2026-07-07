@@ -14,6 +14,7 @@ import {
 import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 import { Button } from '../../components/ui/Button';
+import { DEFAULT_TURNOS, turnosActivosOrdenados, type TurnoVentaItem } from '../../lib/turnosVenta';
 
 const fmt = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -76,24 +77,28 @@ export function DashboardPage() {
   const [catalogo, setCatalogo] = useState<any>(null);
   const [dia, setDia] = useState<any>(null);
   const [mes, setMes] = useState<any>(null);
-  const [turnoManana, setTurnoManana] = useState<any>(null);
-  const [turnoTarde, setTurnoTarde] = useState<any>(null);
+  const [turnosResumen, setTurnosResumen] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [cat, resDia, resMes, manana, tarde] = await Promise.all([
+        const turnos: TurnoVentaItem[] = await api.getTurnosVentaActivos().catch(() => DEFAULT_TURNOS);
+        const activos = turnosActivosOrdenados(turnos.length ? turnos : DEFAULT_TURNOS);
+        const [cat, resDia, resMes, ...resTurnos] = await Promise.all([
           api.getDashboardStats(),
           api.getEstadisticasResumen({ desde: hoy, hasta: hoy, comparar: 'false' }),
           api.getEstadisticasResumen({ desde: monthStartInput(), hasta: hoy, comparar: 'true' }),
-          api.getVentaResumen(hoy, 'MANANA'),
-          api.getVentaResumen(hoy, 'TARDE'),
+          ...activos.map((t) => api.getVentaResumen(hoy, t.slug)),
         ]);
         setCatalogo(cat);
         setDia(resDia);
         setMes(resMes);
-        setTurnoManana(manana);
-        setTurnoTarde(tarde);
+        setTurnosResumen(
+          activos.map((t, i) => ({
+            turno: t,
+            data: resTurnos[i],
+          }))
+        );
       } catch (err) {
         console.error(err);
       } finally {
@@ -146,31 +151,25 @@ export function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-stone-200 bg-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-700">
-              <Sun className="h-5 w-5" />
+      <div className={`grid gap-3 ${turnosResumen.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'}`}>
+        {turnosResumen.map(({ turno, data }, i) => (
+          <div key={turno.slug} className="rounded-xl border border-stone-200 bg-white p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                  i % 2 === 0 ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700'
+                }`}
+              >
+                {i % 2 === 0 ? <Sun className="h-5 w-5" /> : <Sunset className="h-5 w-5" />}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-stone-900">Turno {turno.nombre.toLowerCase()}</p>
+                <p className="text-xs text-stone-500">{data?.cantidadVentas ?? 0} ventas hoy</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-stone-900">Turno mañana</p>
-              <p className="text-xs text-stone-500">{turnoManana?.cantidadVentas ?? 0} ventas hoy</p>
-            </div>
+            <p className="text-lg font-bold text-stone-900">{fmt(data?.totalFacturado ?? 0)}</p>
           </div>
-          <p className="text-lg font-bold text-stone-900">{fmt(turnoManana?.totalFacturado ?? 0)}</p>
-        </div>
-        <div className="rounded-xl border border-stone-200 bg-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-700">
-              <Sunset className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-stone-900">Turno tarde</p>
-              <p className="text-xs text-stone-500">{turnoTarde?.cantidadVentas ?? 0} ventas hoy</p>
-            </div>
-          </div>
-          <p className="text-lg font-bold text-stone-900">{fmt(turnoTarde?.totalFacturado ?? 0)}</p>
-        </div>
+        ))}
       </div>
 
       {mes?.kpisPeriodoAnterior && kpiMes && (

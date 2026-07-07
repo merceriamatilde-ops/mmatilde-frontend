@@ -195,6 +195,15 @@ export const api = {
     apiFetch(`/medios-pago/${id}/default`, { method: 'PUT' }),
   deleteMedioPago: (id: number) => apiFetch(`/medios-pago/${id}`, { method: 'DELETE' }),
 
+  // Turnos de venta
+  getTurnosVenta: () => apiFetch<any[]>('/turnos-venta'),
+  getTurnosVentaActivos: () => apiFetch<any[]>('/turnos-venta/activos'),
+  createTurnoVenta: (data: any) =>
+    apiFetch<any>('/turnos-venta', { method: 'POST', body: JSON.stringify(data) }),
+  updateTurnoVenta: (id: number, data: any) =>
+    apiFetch<any>(`/turnos-venta/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteTurnoVenta: (id: number) => apiFetch(`/turnos-venta/${id}`, { method: 'DELETE' }),
+
   // Estadísticas
   getEstadisticasResumen: (params: Record<string, string>) => {
     const query = new URLSearchParams(params);
