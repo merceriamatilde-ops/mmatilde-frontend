@@ -5,6 +5,7 @@ import { api } from '../../api/client';
 import { toast } from 'sonner';
 import { Spinner } from '../ui/Spinner';
 import { HorariosEditor } from './HorariosEditor';
+import { MediosPagoSection } from './MediosPagoSection';
 
 export function ConfigForm() {
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -109,6 +110,11 @@ export function ConfigForm() {
             <Input name="google_review_url" value={config['google_review_url'] || ''} onChange={handleChange} placeholder="https://g.page/r/..." />
           </div>
         </div>
+      </div>
+
+      <div className="space-y-4 border-t border-stone-200 pt-6">
+        <h3 className="text-lg font-medium">Medios de pago</h3>
+        <MediosPagoSection />
       </div>
 
       <div className="space-y-4 border-t border-stone-200 pt-6 pb-4">

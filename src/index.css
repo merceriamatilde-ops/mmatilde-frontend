@@ -9,9 +9,46 @@
 }
 
 @layer components {
+  .admin-input {
+    @apply flex h-10 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 shadow-sm;
+    @apply placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .admin-select {
+    @apply flex h-10 w-full appearance-none rounded-md border border-stone-300 bg-white px-3 pr-10 text-sm text-stone-900 shadow-sm;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+    background-image: none;
+  }
+
+  .admin-select option {
+    @apply text-stone-900 bg-white py-2;
+  }
+
+  .admin-input-compact-date {
+    @apply admin-input w-[9.75rem] max-w-[9.75rem] shrink-0;
+  }
+
+  .admin-input-compact-time {
+    @apply admin-input w-[6.75rem] max-w-[6.75rem] shrink-0;
+  }
+
+  .admin-select-compact {
+    @apply admin-select w-[7.75rem] max-w-[7.75rem] shrink-0;
+  }
+
+  .admin-select-medio {
+    @apply admin-select min-w-[10rem] max-w-[14rem];
+  }
+
+  .admin-field-label {
+    @apply block text-xs font-medium uppercase tracking-wide text-stone-500 mb-1;
+  }
+
   /* Backoffice: scrollbars finos y consistentes (Chrome/Edge/Safari + Firefox) */
   .admin-shell {
-    scrollbar-gutter: stable;
+    scrollbar-gutter: auto;
   }
 
   .admin-shell,

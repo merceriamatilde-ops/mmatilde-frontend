@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3 } from 'lucide-react';
 
 export function AdminLayout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -14,12 +14,14 @@ export function AdminLayout() {
 
   const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/ventas', label: 'Ventas', icon: ShoppingCart },
     { href: '/productos', label: 'Productos', icon: Package },
     { href: '/categorias', label: 'Categorías', icon: FolderTree },
-    { href: '/colores', label: 'Colores', icon: Palette },
     { href: '/tags', label: 'Tags', icon: Bookmark },
+    { href: '/colores', label: 'Colores', icon: Palette },
     { href: '/precios', label: 'Precios', icon: Tags },
     { href: '/sync', label: 'Sincronización Makor', icon: RefreshCw },
+    { href: '/estadisticas', label: 'Estadísticas', icon: BarChart3 },
     { href: '/ia', label: 'Asistente IA', icon: Brain },
     { href: '/configuracion', label: 'Configuración', icon: Settings },
   ];

@@ -167,4 +167,37 @@ export const api = {
     apiFetch<any>(`/precios/producto/${id}/detectar-unidad`, { method: 'POST' }),
   recalcularPreciosProducto: (id: number) =>
     apiFetch<any>(`/precios/producto/${id}/recalcular`, { method: 'POST' }),
+
+  // Ventas
+  getVentas: (params: Record<string, string>) => {
+    const query = new URLSearchParams(params);
+    return apiFetch<any[]>(`/ventas?${query.toString()}`);
+  },
+  buscarProductosVenta: (q: string, limit = 8) =>
+    apiFetch<any[]>(`/ventas/productos-buscar?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getVenta: (id: number) => apiFetch<any>(`/ventas/${id}`),
+  getVentaResumen: (fecha: string, turno: string) =>
+    apiFetch<any>(`/ventas/resumen?fecha=${fecha}&turno=${turno}`),
+  createVenta: (data: any) =>
+    apiFetch<any>('/ventas', { method: 'POST', body: JSON.stringify(data) }),
+  updateVenta: (id: number, data: any) =>
+    apiFetch<any>(`/ventas/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteVenta: (id: number) => apiFetch(`/ventas/${id}`, { method: 'DELETE' }),
+
+  // Medios de pago
+  getMediosPago: () => apiFetch<any[]>('/medios-pago'),
+  getMediosPagoActivos: () => apiFetch<any[]>('/medios-pago/activos'),
+  createMedioPago: (data: any) =>
+    apiFetch<any>('/medios-pago', { method: 'POST', body: JSON.stringify(data) }),
+  updateMedioPago: (id: number, data: any) =>
+    apiFetch<any>(`/medios-pago/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setMedioPagoDefault: (id: number) =>
+    apiFetch(`/medios-pago/${id}/default`, { method: 'PUT' }),
+  deleteMedioPago: (id: number) => apiFetch(`/medios-pago/${id}`, { method: 'DELETE' }),
+
+  // Estadísticas
+  getEstadisticasResumen: (params: Record<string, string>) => {
+    const query = new URLSearchParams(params);
+    return apiFetch<any>(`/estadisticas/resumen?${query.toString()}`);
+  },
 };

@@ -37,6 +37,8 @@ import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
 import { ColoresPage } from './pages/admin/ColoresPage';
 import { TagsPage } from './pages/admin/TagsPage';
+import { VentasPage } from './pages/admin/VentasPage';
+import { EstadisticasPage } from './pages/admin/EstadisticasPage';
 import { IaPage } from './pages/admin/IaPage';
 
 // Pages - IA
@@ -74,6 +76,8 @@ function App() {
                   <Route path="productos" element={<ProductosPage />} />
                   <Route path="categorias" element={<AdminCategoriasPage />} />
                   <Route path="precios" element={<PreciosPage />} />
+                  <Route path="ventas" element={<VentasPage />} />
+                  <Route path="estadisticas" element={<EstadisticasPage />} />
                   <Route path="colores" element={<ColoresPage />} />
                   <Route path="tags" element={<TagsPage />} />
                   <Route path="sync" element={<SyncPage />} />
