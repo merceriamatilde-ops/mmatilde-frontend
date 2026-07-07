@@ -222,7 +222,7 @@ export function EstadisticasPage() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-wrap items-start gap-x-2 gap-y-3">
           <div className="shrink-0">
             <label className="admin-field-label">Desde</label>
             <Input
@@ -262,7 +262,7 @@ export function EstadisticasPage() {
               ))}
             </Select>
           </div>
-          <div className="shrink-0 min-w-[10rem]">
+          <div className="shrink-0">
             <label className="admin-field-label">Medio de pago</label>
             <Select
               className="admin-select-medio"

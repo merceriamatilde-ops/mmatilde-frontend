@@ -33,6 +33,10 @@ type LineaDraft = {
   productoId: number;
   varianteId?: number | null;
   varianteLabel?: string;
+  presentacionId?: number | null;
+  presentacionNombre?: string;
+  presentaciones?: ProductoPresentacionBusqueda[];
+  presentacionesCargadas?: boolean;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -50,6 +54,15 @@ type ProductoVarianteBusqueda = {
   label: string;
 };
 
+type ProductoPresentacionBusqueda = {
+  id: number;
+  nombre: string;
+  precioVenta?: number | null;
+  gananciaNetaEstimada?: number | null;
+  costoReferencia?: number | null;
+  esDefault?: boolean;
+};
+
 type ProductoBusqueda = {
   id: number;
   nombre: string;
@@ -63,10 +76,65 @@ type ProductoBusqueda = {
   costoMateriales?: number | null;
   manoObra?: number | null;
   variantes?: ProductoVarianteBusqueda[];
+  presentaciones?: ProductoPresentacionBusqueda[];
 };
 
 const fmt = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+
+function defaultPresentacion(presentaciones?: ProductoPresentacionBusqueda[]) {
+  if (!presentaciones?.length) return null;
+  return presentaciones.find((p) => p.esDefault) ?? presentaciones[0];
+}
+
+async function hydrateProductoVenta(p: ProductoBusqueda): Promise<ProductoBusqueda> {
+  if ((p.presentaciones?.length ?? 0) > 1) return p;
+  try {
+    const detail = await api.getProductoPrecioVenta(p.id);
+    const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
+    return {
+      ...p,
+      presentaciones,
+      precioVenta: p.precioVenta ?? detail.precioVenta,
+      unidadVenta: p.unidadVenta ?? detail.unidadVenta,
+      gananciaNetaEstimada: p.gananciaNetaEstimada ?? detail.gananciaNetaEstimada,
+      modoOrigenEconomico: p.modoOrigenEconomico ?? detail.modoOrigenEconomico,
+      costoReferencia: p.costoReferencia ?? detail.costoReferencia,
+      ivaPorcentaje: p.ivaPorcentaje ?? detail.ivaPorcentaje,
+      costoMateriales: p.costoMateriales ?? detail.costoMateriales,
+      manoObra: p.manoObra ?? detail.manoObra,
+    };
+  } catch {
+    return p;
+  }
+}
+
+function lineaConPresentacion(
+  base: Omit<LineaDraft, 'presentacionId' | 'presentacionNombre' | 'unidadVenta' | 'precioUnitario' | 'gananciaUnitaria' | 'costoReferencia'>,
+  pres: ProductoPresentacionBusqueda | null,
+  p: ProductoBusqueda
+): LineaDraft {
+  const precio = pres?.precioVenta ?? p.precioVenta ?? 0;
+  const draft: LineaDraft = {
+    ...base,
+    presentacionId: pres?.id ?? null,
+    presentacionNombre: pres?.nombre,
+    presentaciones: p.presentaciones ?? [],
+    presentacionesCargadas: (p.presentaciones?.length ?? 0) > 0,
+    unidadVenta: pres?.nombre ?? p.unidadVenta,
+    precioUnitario: precio,
+    gananciaUnitaria: pres?.gananciaNetaEstimada ?? p.gananciaNetaEstimada,
+    modoOrigenEconomico: p.modoOrigenEconomico,
+    costoReferencia: pres?.costoReferencia ?? p.costoReferencia,
+    comisionPorcentaje: null,
+    costoMateriales: p.costoMateriales,
+    manoObra: p.manoObra,
+  };
+  return {
+    ...draft,
+    gananciaUnitaria: calcGananciaLinea(draft, precio),
+  };
+}
 
 function calcGananciaLinea(l: LineaDraft, precio: number): number {
   const modo = (l.modoOrigenEconomico || 'REVENTA') as ModoOrigenEconomico;
@@ -281,47 +349,53 @@ export function VentasPage() {
     setTab('nueva');
   };
 
-  const agregarProducto = (
+  const agregarProducto = async (
     p: ProductoBusqueda,
-    variante?: ProductoVarianteBusqueda | null
+    variante?: ProductoVarianteBusqueda | null,
+    presentacion?: ProductoPresentacionBusqueda | null
   ) => {
+    const full = await hydrateProductoVenta(p);
     const varianteId = variante?.id ?? null;
     const varianteLabel = variante?.label;
-    const lineKey = `${p.id}-${varianteId ?? 'base'}`;
+    const pres = presentacion ?? defaultPresentacion(full.presentaciones);
+    const presentacionId = pres?.id ?? null;
+    const lineKey = `${full.id}-${varianteId ?? 'base'}-${presentacionId ?? 'default'}`;
 
     setLineas((prev) => {
       const existing = prev.find(
-        (l) => l.productoId === p.id && (l.varianteId ?? null) === varianteId
+        (l) =>
+          l.productoId === full.id &&
+          (l.varianteId ?? null) === varianteId &&
+          (l.presentacionId ?? null) === presentacionId
       );
       if (existing) {
         return prev.map((l) =>
-          l.productoId === p.id && (l.varianteId ?? null) === varianteId
+          l.productoId === full.id &&
+          (l.varianteId ?? null) === varianteId &&
+          (l.presentacionId ?? null) === presentacionId
             ? { ...l, cantidad: l.cantidad + 1 }
             : l
         );
       }
-      if (!p.precioVenta) {
+      const precio = pres?.precioVenta ?? full.precioVenta;
+      if (!precio) {
         toast.error('Este producto no tiene precio de venta cargado');
         return prev;
       }
       return [
         ...prev,
-        {
-          key: `${lineKey}-${Date.now()}`,
-          productoId: p.id,
-          varianteId,
-          varianteLabel,
-          nombre: p.nombre,
-          cantidad: 1,
-          precioUnitario: p.precioVenta,
-          unidadVenta: p.unidadVenta,
-          gananciaUnitaria: p.gananciaNetaEstimada,
-          modoOrigenEconomico: p.modoOrigenEconomico,
-          costoReferencia: p.costoReferencia,
-          comisionPorcentaje: null,
-          costoMateriales: p.costoMateriales,
-          manoObra: p.manoObra,
-        },
+        lineaConPresentacion(
+          {
+            key: `${lineKey}-${Date.now()}`,
+            productoId: full.id,
+            varianteId,
+            varianteLabel,
+            nombre: full.nombre,
+            cantidad: 1,
+          },
+          pres,
+          full
+        ),
       ];
     });
     setQuery('');
@@ -336,8 +410,42 @@ export function VentasPage() {
       setShowResults(false);
       return;
     }
-    agregarProducto(p, variantes.length === 1 ? variantes[0] : null);
+    void agregarProducto(p, variantes.length === 1 ? variantes[0] : null);
   };
+
+  useEffect(() => {
+    const pendientes = lineas.filter((l) => !l.presentacionesCargadas);
+    if (!pendientes.length) return;
+
+    let cancelled = false;
+    (async () => {
+      const updates = await Promise.all(
+        pendientes.map(async (l) => {
+          try {
+            const detail = await api.getProductoPrecioVenta(l.productoId);
+            return {
+              key: l.key,
+              presentaciones: (detail.presentaciones ?? []) as ProductoPresentacionBusqueda[],
+            };
+          } catch {
+            return { key: l.key, presentaciones: l.presentaciones ?? [] };
+          }
+        })
+      );
+      if (cancelled) return;
+      setLineas((prev) =>
+        prev.map((l) => {
+          const hit = updates.find((u) => u.key === l.key);
+          if (!hit) return l;
+          return { ...l, presentaciones: hit.presentaciones, presentacionesCargadas: true };
+        })
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lineas]);
 
   const guardarVenta = async () => {
     if (lineas.length === 0) {
@@ -358,6 +466,7 @@ export function VentasPage() {
         lineas: lineas.map((l) => ({
           productoId: l.productoId,
           varianteId: l.varianteId ?? null,
+          presentacionId: l.presentacionId ?? null,
           cantidad: l.cantidad,
           precioUnitario: l.precioUnitario,
         })),
@@ -420,16 +529,39 @@ export function VentasPage() {
       setMedioPagoSlug(v.medioPagoSlug || defaultMedioSlug);
       setNotas(v.notas || '');
       setLineas(
-        v.lineas.map((l: any) => ({
-          key: `edit-${l.id}`,
-          productoId: l.productoId,
-          varianteId: l.varianteId ?? null,
-          varianteLabel: l.varianteLabel ?? undefined,
-          nombre: l.productoNombre,
-          cantidad: l.cantidad,
-          precioUnitario: l.precioUnitarioVenta,
-          gananciaUnitaria: l.gananciaNetaEstimada / (l.cantidad || 1),
-        }))
+        await Promise.all(
+          v.lineas.map(async (l: any) => {
+            const detail = await api.getProductoPrecioVenta(l.productoId);
+            const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
+            const pres =
+              presentaciones.find((p) => p.nombre === l.presentacionNombre) ??
+              defaultPresentacion(presentaciones);
+            const draft: LineaDraft = {
+              key: `edit-${l.id}`,
+              productoId: l.productoId,
+              varianteId: l.varianteId ?? null,
+              varianteLabel: l.varianteLabel ?? undefined,
+              presentacionId: pres?.id ?? null,
+              presentacionNombre: l.presentacionNombre ?? pres?.nombre,
+              presentaciones,
+              presentacionesCargadas: true,
+              nombre: l.productoNombre,
+              cantidad: l.cantidad,
+              precioUnitario: l.precioUnitarioVenta,
+              unidadVenta: l.presentacionNombre ?? pres?.nombre,
+              gananciaUnitaria: l.gananciaNetaEstimada / (l.cantidad || 1),
+              modoOrigenEconomico: detail.modoOrigenEconomico,
+              costoReferencia: pres?.costoReferencia ?? detail.costoReferencia,
+              comisionPorcentaje: null,
+              costoMateriales: detail.costoMateriales,
+              manoObra: detail.manoObra,
+            };
+            return {
+              ...draft,
+              gananciaUnitaria: calcGananciaLinea(draft, draft.precioUnitario),
+            };
+          })
+        )
       );
       setEditandoId(id);
       setTab('nueva');
@@ -500,7 +632,7 @@ export function VentasPage() {
               showResults ? 'overflow-visible' : ''
             }`}
           >
-            <div className="flex flex-wrap items-start gap-3">
+            <div className="flex flex-wrap items-start gap-x-2 gap-y-3">
               <div className="shrink-0">
                 <label className="admin-field-label">Fecha</label>
                 <Input
@@ -536,12 +668,12 @@ export function VentasPage() {
                   ))}
                 </Select>
                 {turnoActual && (
-                  <p className="text-[11px] text-stone-400 mt-1 max-w-[11rem] leading-tight">
+                  <p className="text-[11px] text-stone-400 mt-1 max-w-[7.75rem] leading-tight">
                     {turnoManual ? 'Manual' : 'Auto'} · {turnoActual.descripcionHorario}
                   </p>
                 )}
               </div>
-              <div className="shrink-0 min-w-[10rem]">
+              <div className="shrink-0">
                 <label className="admin-field-label">
                   Medio de pago <span className="text-red-500">*</span>
                 </label>
@@ -610,7 +742,7 @@ export function VentasPage() {
                     <button
                       key={v.id}
                       type="button"
-                      onClick={() => agregarProducto(productoPendiente, v)}
+                      onClick={() => void agregarProducto(productoPendiente, v)}
                       className="px-3 py-2 rounded-lg border border-stone-200 bg-white text-sm font-medium text-stone-800 hover:border-brand-500 hover:bg-brand-50 transition-colors"
                     >
                       {v.label}
@@ -640,8 +772,50 @@ export function VentasPage() {
                           {l.varianteLabel && (
                             <div className="text-xs text-brand-700">{l.varianteLabel}</div>
                           )}
-                          {l.unidadVenta && (
-                            <div className="text-xs text-stone-400">{l.unidadVenta}</div>
+                          {(l.presentaciones?.length ?? 0) > 1 ? (
+                            <div className="mt-1.5 max-w-[11rem]">
+                              <Select
+                                value={String(l.presentacionId ?? '')}
+                                onChange={(e) => {
+                                  const pres = l.presentaciones?.find(
+                                    (p) => String(p.id) === e.target.value
+                                  );
+                                  if (!pres) return;
+                                  setLineas((prev) =>
+                                    prev.map((x) => {
+                                      if (x.key !== l.key) return x;
+                                      const next: LineaDraft = {
+                                        ...x,
+                                        presentacionId: pres.id,
+                                        presentacionNombre: pres.nombre,
+                                        unidadVenta: pres.nombre,
+                                        precioUnitario: pres.precioVenta ?? x.precioUnitario,
+                                        costoReferencia: pres.costoReferencia ?? x.costoReferencia,
+                                      };
+                                      return {
+                                        ...next,
+                                        gananciaUnitaria: calcGananciaLinea(
+                                          next,
+                                          next.precioUnitario
+                                        ),
+                                      };
+                                    })
+                                  );
+                                }}
+                                className="admin-select-sm max-w-[11rem]"
+                              >
+                                {l.presentaciones!.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.nombre}
+                                    {p.precioVenta != null ? ` · ${fmt(p.precioVenta)}` : ''}
+                                  </option>
+                                ))}
+                              </Select>
+                            </div>
+                          ) : (
+                            l.unidadVenta && (
+                              <div className="text-xs text-stone-400">{l.unidadVenta}</div>
+                            )
                           )}
                         </td>
                         <td className="px-3 py-2">

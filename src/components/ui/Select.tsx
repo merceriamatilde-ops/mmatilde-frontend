@@ -113,7 +113,7 @@ export function Select({
   ) : null;
 
   return (
-    <div className={`relative ${className}`} ref={ref}>
+    <div className="relative min-w-0" ref={ref}>
       <button
         ref={btnRef}
         type="button"
@@ -122,7 +122,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => !disabled && setOpen((v) => !v)}
-        className={`admin-select flex w-full items-center justify-between gap-2 text-left ${
+        className={`admin-select flex w-full items-center justify-between gap-2 text-left ${className} ${
           disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
         }`}
         {...(rest as object)}

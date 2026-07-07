@@ -175,6 +175,7 @@ export const api = {
   },
   buscarProductosVenta: (q: string, limit = 8) =>
     apiFetch<any[]>(`/ventas/productos-buscar?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getProductoPrecioVenta: (id: number) => apiFetch<any>(`/ventas/producto/${id}/precio`),
   getVenta: (id: number) => apiFetch<any>(`/ventas/${id}`),
   getVentaResumen: (fecha: string, turno: string) =>
     apiFetch<any>(`/ventas/resumen?fecha=${fecha}&turno=${turno}`),
