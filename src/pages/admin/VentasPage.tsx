@@ -526,13 +526,14 @@ export function VentasPage() {
       if (editandoId) {
         await api.updateVenta(editandoId, payload);
         toast.success('Venta actualizada');
+        resetForm();
+        setTab('historial');
+        loadHistorial();
       } else {
         await api.createVenta(payload);
         toast.success('Venta registrada');
+        resetForm();
       }
-      resetForm();
-      setTab('historial');
-      loadHistorial();
     } catch (err: any) {
       toast.error(err?.message || 'Error al guardar');
     } finally {
