@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Folder, FolderTree, AlertCircle } from 'lucide-react';
 import { api } from '../../api/client';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { Modal } from '../../components/ui/Modal';
 import { toast } from 'sonner';
 import { Input } from '../../components/ui/Input';
 
@@ -15,6 +17,7 @@ export function CategoriasPage() {
   const [modalMode, setModalMode] = useState<'CREATE_CAT' | 'EDIT_CAT' | 'CREATE_SUB' | 'EDIT_SUB'>('CREATE_CAT');
   const [modalData, setModalData] = useState<any>(null);
   const [inputValue, setInputValue] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: 'CAT' | 'SUB'; nombre: string } | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -74,7 +77,6 @@ export function CategoriasPage() {
   };
 
   const handleDelete = async (id: number, type: 'CAT' | 'SUB') => {
-    if (!confirm('¿Estás seguro de eliminar esto?')) return;
     try {
       if (type === 'CAT') {
         await api.deleteCategoria(id);
@@ -93,6 +95,22 @@ export function CategoriasPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        title={deleteTarget?.type === 'CAT' ? 'Eliminar categoría' : 'Eliminar subcategoría'}
+        description={
+          deleteTarget
+            ? `Se va a eliminar "${deleteTarget.nombre}".`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          void handleDelete(deleteTarget.id, deleteTarget.type).finally(() => setDeleteTarget(null));
+        }}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold font-outfit text-stone-900">Categorías y Subcategorías</h1>
@@ -150,7 +168,7 @@ export function CategoriasPage() {
                           variant="outline" 
                           size="sm" 
                           disabled={!canDelete}
-                          onClick={() => handleDelete(cat.id, 'CAT')}
+                          onClick={() => setDeleteTarget({ id: cat.id, type: 'CAT', nombre: cat.nombre })}
                           className={canDelete ? "text-red-600 hover:bg-red-50 hover:border-red-200" : ""}
                         >
                           <Trash2 size={16} />
@@ -190,7 +208,7 @@ export function CategoriasPage() {
                               variant="outline" 
                               size="sm" 
                               disabled={!subCanDelete}
-                              onClick={() => handleDelete(sub.id, 'SUB')}
+                              onClick={() => setDeleteTarget({ id: sub.id, type: 'SUB', nombre: sub.nombre })}
                               className={subCanDelete ? "text-red-600 hover:bg-red-50 hover:border-red-200" : ""}
                             >
                               <Trash2 size={14} />
@@ -207,47 +225,50 @@ export function CategoriasPage() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6">
-              <h3 className="text-lg font-bold text-stone-900 mb-4">
-                {modalMode === 'CREATE_CAT' && 'Nueva Categoría'}
-                {modalMode === 'EDIT_CAT' && 'Editar Categoría'}
-                {modalMode === 'CREATE_SUB' && 'Nueva Subcategoría'}
-                {modalMode === 'EDIT_SUB' && 'Editar Subcategoría'}
-              </h3>
-              
-              {modalData?.esMakor && modalMode.includes('EDIT') && (
-                <div className="mb-4 bg-blue-50 text-blue-800 p-3 rounded-lg text-sm flex gap-2">
-                  <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                  <p>Al editar una categoría de Makor, solo se cambiará el nombre visual. El identificador interno se mantiene para no romper la sincronización.</p>
-                </div>
-              )}
+      <Modal
+        open={isModalOpen}
+        title={
+          <>
+            {modalMode === 'CREATE_CAT' && 'Nueva Categoría'}
+            {modalMode === 'EDIT_CAT' && 'Editar Categoría'}
+            {modalMode === 'CREATE_SUB' && 'Nueva Subcategoría'}
+            {modalMode === 'EDIT_SUB' && 'Editar Subcategoría'}
+          </>
+        }
+        onClose={() => setIsModalOpen(false)}
+        maxWidthClassName="max-w-sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit}>Guardar</Button>
+          </>
+        }
+      >
+        {modalData?.esMakor && modalMode.includes('EDIT') && (
+          <div className="mb-4 bg-blue-50 text-blue-800 p-3 rounded-lg text-sm flex gap-2">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <p>Al editar una categoría de Makor, solo se cambiará el nombre visual. El identificador interno se mantiene para no romper la sincronización.</p>
+          </div>
+        )}
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-1">Nombre</label>
-                  <Input 
-                    autoFocus
-                    value={inputValue} 
-                    onChange={e => setInputValue(e.target.value)} 
-                    placeholder="Ej: Accesorios"
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleSubmit();
-                      if (e.key === 'Escape') setIsModalOpen(false);
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-stone-50 border-t border-stone-100 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSubmit}>Guardar</Button>
-            </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Nombre</label>
+            <Input
+              autoFocus
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              placeholder="Ej: Accesorios"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Escape') setIsModalOpen(false);
+              }}
+            />
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

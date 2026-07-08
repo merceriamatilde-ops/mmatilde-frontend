@@ -154,6 +154,9 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
     return costoBase;
   }, [precioCompra, cantidadCompra, costoBase]);
 
+  const sinBaseParaFormula = usaFormula && costoBasePreview == null;
+  const usaInputPrecioPresentacion = usaPrecioManual || sinBaseParaFormula;
+
   const ivaAplicadoPreview = useMemo(() => {
     if (esExcepcion && ivaProducto !== '') {
       const v = parseFloat(ivaProducto);
@@ -171,7 +174,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
   }, [esExcepcion, margenProducto, margen]);
 
   const calcularPrecioDePresentacion = (p: Presentacion) => {
-    if (usaPrecioManual) return p.precioVenta ?? null;
+    if (usaInputPrecioPresentacion) return p.precioVenta ?? null;
     const margenPres = p.margenPorcentaje ?? margenAplicadoPreview;
     return (
       calcularPrecioFormula(
@@ -337,7 +340,9 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
       );
       setGananciaEstimada(data.gananciaEstimada || null);
       setPresentaciones(
-        origen !== 'REVENTA' || precio === 'PRECIO_FIJO'
+        origen !== 'REVENTA' ||
+          precio === 'PRECIO_FIJO' ||
+          (data.presentaciones || []).length === 0
           ? asegurarPresentacionDefault(data.presentaciones || [])
           : data.presentaciones || []
       );
@@ -425,6 +430,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
     cantidadUnidadCompra: cantidadCompra ? parseFloat(cantidadCompra) : null,
     etiquetaUnidadCompra: etiquetaCompra || null,
     unidadCompraAutoDetectada: autoDetectada,
+    precioCompra: precioCompra != null && precioCompra > 0 ? precioCompra : null,
     modoPrecio: esReventa ? modoPrecio : 'PRECIO_FIJO',
     ivaPorcentajeProducto:
       esPrecioFijo
@@ -468,13 +474,14 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
       activo: p.activo,
       orden: i,
     })),
-    recalcularPrecios: recalcular && usaFormula,
+    recalcularPrecios: recalcular && usaFormula && costoBasePreview != null,
   });
 
   const handleSave = async (recalcular = true) => {
     setSaving(true);
     try {
       const data = await api.updateProductoPrecios(productoId, buildPayload(recalcular));
+      setPrecioCompra(data.precioCompra);
       setCostoBase(data.costoPorUnidadBase);
       setIva(data.ivaPorcentaje);
       setMargen(data.margenAplicado);
@@ -785,7 +792,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Paso 3</p>
-              <h4 className="text-sm font-semibold text-stone-900">Unidad de compra y venta</h4>
+              <h4 className="text-sm font-semibold text-stone-900">Unidad de compra</h4>
               <p className="mt-0.5 text-[11px] text-stone-500">
                 Para calcular costo por gramo, metro, etc.
               </p>
@@ -797,6 +804,27 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-stone-600">
+                Precio de compra (Makor)
+              </label>
+              <Input
+                type="number"
+                step="any"
+                value={precioCompra ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value ? parseFloat(e.target.value) : null;
+                  setPrecioCompra(val);
+                  markDirty();
+                }}
+                placeholder="Ej: 8500"
+              />
+              {sinBaseParaFormula && (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Makor no envió precio. Cargalo acá para calcular con la fórmula.
+                </p>
+              )}
+            </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-stone-600">Unidad base</label>
               <Select
@@ -838,12 +866,9 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
           </div>
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
-            <span>
-              Precio compra: <strong className="text-stone-900">{formatPrice(precioCompra || 0)}</strong>
-            </span>
-            {costoBase != null && unidadBase && (
+            {costoBasePreview != null && unidadBase && (
               <span>
-                Costo / {unidadBase}: <strong className="text-stone-900">{formatPrice(costoBase)}</strong>
+                Costo / {unidadBase}: <strong className="text-stone-900">{formatPrice(costoBasePreview)}</strong>
               </span>
             )}
             <span>
@@ -859,12 +884,30 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
           Paso {usaFormula ? 4 : esReventa ? 3 : esConsignacion || esElaboracion ? 3 : 2}
         </p>
         <h4 className="text-sm font-semibold text-stone-900">
-          {usaPrecioManual ? 'Precio de venta (lo cargás vos)' : 'Presentaciones de venta'}
+          {usaInputPrecioPresentacion && !usaFormula
+            ? 'Precio de venta (lo cargás vos)'
+            : 'Presentaciones de venta'}
         </h4>
         {usaPrecioManual && (
           <p className="mt-1 text-[11px] text-stone-500">
             Este es el precio del cartel / catálogo. No usa fórmula de margen.
           </p>
+        )}
+        {sinBaseParaFormula && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs text-amber-900">
+              Este producto no tiene precio de compra en Makor. Cargá el precio arriba, ingresá precios de
+              venta manualmente acá, o{' '}
+              <button
+                type="button"
+                onClick={activarPrecioFijoReventa}
+                className="font-medium text-brand-800 underline hover:text-brand-700"
+              >
+                usá precio fijo
+              </button>
+              .
+            </p>
+          </div>
         )}
 
         {esElaboracion ? (
@@ -920,9 +963,13 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
                 <div
                   key={p.id ?? `new-${i}`}
                   className={`grid gap-2 rounded-lg border border-stone-200 bg-stone-50 p-3 ${
-                    usaPrecioManual
+                    usaInputPrecioPresentacion && !usaFormula
                       ? 'sm:grid-cols-[1fr_120px_auto]'
-                      : 'sm:grid-cols-[1fr_100px_90px_100px_auto]'
+                      : usaFormula
+                        ? sinBaseParaFormula
+                          ? 'sm:grid-cols-[1fr_100px_90px_120px_auto]'
+                          : 'sm:grid-cols-[1fr_100px_90px_100px_auto]'
+                        : 'sm:grid-cols-[1fr_120px_auto]'
                   }`}
                 >
                   <Input
@@ -954,7 +1001,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
                       />
                     </>
                   )}
-                  {usaPrecioManual ? (
+                  {usaInputPrecioPresentacion ? (
                     <Input
                       type="number"
                       step="any"
@@ -1046,7 +1093,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
       )}
 
       <div className="flex flex-wrap gap-2 pt-1">
-        {usaPrecioManual ? (
+        {usaPrecioManual || sinBaseParaFormula ? (
           <Button type="button" onClick={() => handleSave(false)} disabled={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </Button>

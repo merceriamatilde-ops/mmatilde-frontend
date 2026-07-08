@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../../api/client';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Switch } from '../../components/ui/Switch';
 import { Spinner } from '../../components/ui/Spinner';
 
@@ -21,6 +22,7 @@ export function TagsPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [tagAEliminar, setTagAEliminar] = useState<any>(null);
 
   const load = async () => {
     try {
@@ -79,7 +81,6 @@ export function TagsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este tag? Se quitará de todos los productos.')) return;
     try {
       await api.deleteTag(id);
       toast.success('Tag eliminado');
@@ -99,6 +100,22 @@ export function TagsPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        open={Boolean(tagAEliminar)}
+        title="Eliminar tag"
+        description={
+          tagAEliminar
+            ? `Se va a eliminar "${tagAEliminar.nombre}" y se quitará de todos los productos.`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setTagAEliminar(null)}
+        onConfirm={() => {
+          if (!tagAEliminar) return;
+          void handleDelete(tagAEliminar.id).finally(() => setTagAEliminar(null));
+        }}
+      />
+
       <div>
         <h1 className="font-outfit text-3xl font-bold tracking-tight text-stone-900">Tags / Colecciones</h1>
         <p className="mt-1 text-stone-500">
@@ -235,7 +252,7 @@ export function TagsPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(tag.id)}
+                            onClick={() => setTagAEliminar(tag)}
                             className="rounded p-1.5 text-stone-400 hover:bg-red-50 hover:text-red-600"
                           >
                             <Trash2 size={16} />

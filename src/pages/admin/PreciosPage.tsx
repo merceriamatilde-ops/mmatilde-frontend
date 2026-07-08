@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { api } from '../../api/client';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Select } from '../../components/ui/Select';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ export function PreciosPage() {
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [reglaAEliminar, setReglaAEliminar] = useState<any>(null);
 
   const [nuevaRegla, setNuevaRegla] = useState({
     categoriaId: '',
@@ -77,7 +79,6 @@ export function PreciosPage() {
   };
 
   const deleteRegla = async (id: number) => {
-    if (!confirm('¿Eliminar esta regla de precio?')) return;
     try {
       await api.deleteReglaPrecio(id);
       toast.success('Regla eliminada');
@@ -97,6 +98,18 @@ export function PreciosPage() {
 
   return (
     <div className="space-y-8">
+      <ConfirmModal
+        open={Boolean(reglaAEliminar)}
+        title="Eliminar regla de precio"
+        description="La categoría volverá a usar el margen global o la regla más específica que corresponda."
+        confirmLabel="Eliminar"
+        onClose={() => setReglaAEliminar(null)}
+        onConfirm={() => {
+          if (!reglaAEliminar) return;
+          void deleteRegla(reglaAEliminar.id).finally(() => setReglaAEliminar(null));
+        }}
+      />
+
       <div>
         <h1 className="font-outfit text-3xl font-bold tracking-tight text-stone-900">Precios</h1>
         <p className="mt-1 text-stone-500">
@@ -182,7 +195,7 @@ export function PreciosPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => deleteRegla(r.id)}
+                  onClick={() => setReglaAEliminar(r)}
                   className="text-stone-400 hover:text-red-600"
                 >
                   <Trash2 size={16} />
@@ -191,11 +204,6 @@ export function PreciosPage() {
             ))}
           </ul>
         )}
-      </section>
-
-      <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-sm text-amber-900">
-        <strong>Próximo paso:</strong> stock y compras. Por ahora configurá unidades y presentaciones de venta
-        en cada producto (modal de edición → sección &quot;Unidades y precios de venta&quot;).
       </section>
     </div>
   );

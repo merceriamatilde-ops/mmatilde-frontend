@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../../api/client';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import { Switch } from '../ui/Switch';
 import { Spinner } from '../ui/Spinner';
 
@@ -22,6 +23,7 @@ export function MediosPagoSection() {
   const [nombre, setNombre] = useState('');
   const [orden, setOrden] = useState('0');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [medioAEliminar, setMedioAEliminar] = useState<MedioPago | null>(null);
 
   const load = async () => {
     try {
@@ -102,7 +104,6 @@ export function MediosPagoSection() {
       toast.error('Debe quedar al menos un medio de pago');
       return;
     }
-    if (!confirm('¿Eliminar este medio de pago?')) return;
     try {
       await api.deleteMedioPago(id);
       toast.success('Eliminado');
@@ -116,6 +117,22 @@ export function MediosPagoSection() {
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={Boolean(medioAEliminar)}
+        title="Eliminar medio de pago"
+        description={
+          medioAEliminar
+            ? `Se va a eliminar "${medioAEliminar.nombre}".`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setMedioAEliminar(null)}
+        onConfirm={() => {
+          if (!medioAEliminar) return;
+          void handleDelete(medioAEliminar.id).finally(() => setMedioAEliminar(null));
+        }}
+      />
+
       <p className="text-sm text-stone-500">
         Gestioná los medios de cobro del mostrador. El predeterminado se selecciona automáticamente al registrar ventas.
       </p>
@@ -190,7 +207,7 @@ export function MediosPagoSection() {
                 {medios.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => handleDelete(m.id)}
+                    onClick={() => setMedioAEliminar(m)}
                     className="p-2 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />

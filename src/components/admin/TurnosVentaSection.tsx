@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../../api/client';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { ConfirmModal } from '../ui/ConfirmModal';
 import { Switch } from '../ui/Switch';
 import { Spinner } from '../ui/Spinner';
 import {
@@ -92,6 +93,7 @@ export function TurnosVentaSection() {
   const [horaDesde, setHoraDesde] = useState('09:00');
   const [orden, setOrden] = useState('0');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [turnoAEliminar, setTurnoAEliminar] = useState<TurnoVentaItem | null>(null);
 
   const activosCount = useMemo(() => turnos.filter((t) => t.activo).length, [turnos]);
 
@@ -175,7 +177,6 @@ export function TurnosVentaSection() {
       toast.error('Deben quedar al menos 2 turnos');
       return;
     }
-    if (!confirm('¿Eliminar este turno?')) return;
     try {
       await api.deleteTurnoVenta(id);
       toast.success('Eliminado');
@@ -196,6 +197,22 @@ export function TurnosVentaSection() {
 
   return (
     <div className="space-y-5">
+      <ConfirmModal
+        open={Boolean(turnoAEliminar)}
+        title="Eliminar turno"
+        description={
+          turnoAEliminar
+            ? `Se va a eliminar "${turnoAEliminar.nombre}" (${turnoAEliminar.descripcionHorario}).`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setTurnoAEliminar(null)}
+        onConfirm={() => {
+          if (!turnoAEliminar) return;
+          void handleDelete(turnoAEliminar.id).finally(() => setTurnoAEliminar(null));
+        }}
+      />
+
       <p className="text-sm text-stone-500">
         Definí los turnos del mostrador. Cada venta se asigna automáticamente según la hora, pero podés
         cambiarla manualmente al registrar. Los horarios de inicio no pueden repetirse y el primer turno
@@ -269,7 +286,7 @@ export function TurnosVentaSection() {
                 {turnos.length > 2 && (
                   <button
                     type="button"
-                    onClick={() => handleDelete(t.id)}
+                    onClick={() => setTurnoAEliminar(t)}
                     className="p-2 rounded-md text-stone-400 hover:text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />

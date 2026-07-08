@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../api/client';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Spinner } from '../../components/ui/Spinner';
 
 export function ColoresPage() {
@@ -11,6 +12,7 @@ export function ColoresPage() {
   const [nombre, setNombre] = useState('');
   const [codigoHex, setCodigoHex] = useState('#000000');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [colorAEliminar, setColorAEliminar] = useState<any>(null);
 
   useEffect(() => {
     loadColores();
@@ -60,7 +62,6 @@ export function ColoresPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Eliminar este color?')) return;
     try {
       await api.deleteColor(id);
       toast.success('Color eliminado');
@@ -74,6 +75,20 @@ export function ColoresPage() {
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        open={Boolean(colorAEliminar)}
+        title="Eliminar color"
+        description={
+          colorAEliminar ? `Se va a eliminar "${colorAEliminar.nombre}".` : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setColorAEliminar(null)}
+        onConfirm={() => {
+          if (!colorAEliminar) return;
+          void handleDelete(colorAEliminar.id).finally(() => setColorAEliminar(null));
+        }}
+      />
+
       <h1 className="text-2xl font-bold font-outfit text-stone-900">Catálogo Global de Colores</h1>
       
       <div className="grid md:grid-cols-3 gap-6">
@@ -167,7 +182,7 @@ export function ColoresPage() {
                         <Edit2 size={18} />
                       </button>
                       <button 
-                        onClick={() => handleDelete(color.id)}
+                        onClick={() => setColorAEliminar(color)}
                         className="text-red-600 hover:text-red-900"
                         title="Eliminar"
                       >

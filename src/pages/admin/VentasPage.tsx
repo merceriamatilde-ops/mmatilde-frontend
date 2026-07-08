@@ -3,6 +3,7 @@ import { Search, Plus, Trash2, ShoppingCart, History, X, Pencil, BarChart3, Arro
 import { toast } from 'sonner';
 import { api } from '../../api/client';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Input } from '../../components/ui/Input';
 import { InputWithIcon } from '../../components/ui/InputWithIcon';
 import { Select } from '../../components/ui/Select';
@@ -272,6 +273,7 @@ export function VentasPage() {
   const [detalle, setDetalle] = useState<any | null>(null);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [cargandoEdicion, setCargandoEdicion] = useState(false);
+  const [ventaAEliminar, setVentaAEliminar] = useState<any | null>(null);
 
   const defaultMedioSlug = useMemo(() => {
     const fromApi = mediosPago.find((m) => m.esDefault)?.slug ?? mediosPago[0]?.slug;
@@ -618,7 +620,6 @@ export function VentasPage() {
   };
 
   const eliminarVenta = async (id: number) => {
-    if (!confirm('¿Eliminar esta venta?')) return;
     try {
       await api.deleteVenta(id);
       toast.success('Venta eliminada');
@@ -633,6 +634,22 @@ export function VentasPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      <ConfirmModal
+        open={Boolean(ventaAEliminar)}
+        title="Eliminar venta"
+        description={
+          ventaAEliminar
+            ? `Se va a eliminar la venta #${ventaAEliminar.id} por ${fmt(ventaAEliminar.total)}.`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setVentaAEliminar(null)}
+        onConfirm={() => {
+          if (!ventaAEliminar) return;
+          void eliminarVenta(ventaAEliminar.id).finally(() => setVentaAEliminar(null));
+        }}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-stone-900 flex items-center gap-2">
@@ -1101,7 +1118,7 @@ export function VentasPage() {
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => eliminarVenta(v.id)}
+                      onClick={() => setVentaAEliminar(v)}
                       className="p-2 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-md"
                     >
                       <Trash2 className="h-4 w-4" />

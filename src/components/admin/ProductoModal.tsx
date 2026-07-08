@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
 import { Select } from '../ui/Select';
 import { api } from '../../api/client';
+import { normalizeSearchQuery } from '../../lib/utils';
 import { toast } from 'sonner';
 import { ProductoPreciosSection } from './ProductoPreciosSection';
 
@@ -69,14 +70,15 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
   };
 
   useEffect(() => {
-    if (searchRel.length < 3) {
+    const q = normalizeSearchQuery(searchRel);
+    if (q.length < 3) {
       setSearchResults([]);
       return;
     }
     const timer = setTimeout(async () => {
       setSearchingRel(true);
       try {
-        const res = await api.getProductosAdmin({ q: searchRel, pageSize: 5 });
+        const res = await api.getProductosAdmin({ q, pageSize: 5 });
         setSearchResults(res.items.filter((item: any) => item.id !== product?.id && !relacionados.some(r => r.id === item.id)));
       } catch (err) {
         console.error(err);

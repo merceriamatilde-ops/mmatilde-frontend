@@ -167,9 +167,23 @@ export function ProductoPreciosResumen({ productoId }: ProductoPreciosResumenPro
   const ganancia = data.gananciaEstimada;
   const unidad = etiquetaUnidad(data.unidadBase);
   const muestraPorUnidad = venta.cantidad > 1 && venta.precioPorUnidad != null;
+  const sinPrecioCompra = usaFormula && (data.precioCompra == null || data.precioCompra <= 0);
+  const sinPrecioVenta = venta.precio == null;
 
   return (
     <div className="space-y-5">
+      {(sinPrecioCompra || sinPrecioVenta) && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-900">Precio incompleto</p>
+          <p className="mt-1 text-xs text-amber-800">
+            {sinPrecioCompra && sinPrecioVenta
+              ? 'Makor no envió precio de compra y aún no hay precio de venta. Editá precios para cargarlo.'
+              : sinPrecioCompra
+                ? 'Sin precio de compra en Makor — la fórmula no puede calcular hasta que lo cargues.'
+                : 'Sin precio de venta configurado.'}
+          </p>
+        </div>
+      )}
       <div className="rounded-xl border border-brand-200 bg-brand-50/50 px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-700">
           Precio de venta final

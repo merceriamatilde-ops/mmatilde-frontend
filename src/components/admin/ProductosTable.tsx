@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
 import { Switch } from '../ui/Switch';
 import { Button } from '../ui/Button';
-import { Star, StarOff, Eye, X, Pencil } from 'lucide-react';
+import { ConfirmModal } from '../ui/ConfirmModal';
+import { Modal } from '../ui/Modal';
+import { Banknote, Star, StarOff, Pencil } from 'lucide-react';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
 import { formatPrice } from '../../lib/utils';
@@ -20,26 +22,18 @@ function PricesModal({
   if (!product) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center p-6 border-b border-stone-100 flex-shrink-0">
-          <div className="min-w-0 pr-4">
-            <h3 className="text-xl font-bold font-outfit text-stone-900">Precios del producto</h3>
-            <p className="text-sm text-stone-500 mt-1 line-clamp-1">{product.nombre}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-stone-400 hover:text-stone-600 rounded-full hover:bg-stone-100 transition-colors shrink-0"
-          >
-            <X size={20} />
-          </button>
+    <Modal
+      open={Boolean(product)}
+      title={
+        <div className="min-w-0 pr-4">
+          <div className="text-xl font-bold font-outfit text-stone-900">Precios del producto</div>
+          <p className="text-sm text-stone-500 mt-1 line-clamp-1">{product.nombre}</p>
         </div>
-
-        <div className="p-6 overflow-y-auto flex-1">
-          <ProductoPreciosResumen productoId={product.id} />
-        </div>
-
-        <div className="p-4 bg-stone-50 border-t border-stone-100 flex justify-end gap-2 flex-shrink-0">
+      }
+      onClose={onClose}
+      maxWidthClassName="max-w-lg"
+      footer={
+        <>
           <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>
@@ -54,9 +48,11 @@ function PricesModal({
               Editar precios
             </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <ProductoPreciosResumen productoId={product.id} />
+    </Modal>
   );
 }
 
@@ -72,10 +68,9 @@ export function ProductosTable({
 }: any) {
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
   const [selectedProductForPrices, setSelectedProductForPrices] = useState<any>(null);
+  const [productoAEliminar, setProductoAEliminar] = useState<any>(null);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('¿Estás seguro de eliminar este producto?')) return;
-
     setLoadingIds((prev) => new Set(prev).add(id));
     try {
       await api.deleteProducto(id);
@@ -128,6 +123,23 @@ export function ProductosTable({
 
   return (
     <div className="space-y-4">
+      <ConfirmModal
+        open={Boolean(productoAEliminar)}
+        title="Eliminar producto"
+        description={
+          productoAEliminar
+            ? `Se va a eliminar "${productoAEliminar.nombre}". Esta acción no se puede deshacer.`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setProductoAEliminar(null)}
+        onConfirm={() => {
+          if (!productoAEliminar) return;
+          void handleDelete(productoAEliminar.id).finally(() => setProductoAEliminar(null));
+        }}
+        loading={productoAEliminar ? loadingIds.has(productoAEliminar.id) : false}
+      />
+
       {selectedProductForPrices && (
         <PricesModal
           product={selectedProductForPrices}
@@ -144,6 +156,7 @@ export function ProductosTable({
               <TableHead>Producto</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead className="w-[140px]">Precio venta</TableHead>
+              <TableHead className="w-[88px] text-center">Más precios</TableHead>
               <TableHead className="w-[72px] text-center">Dest.</TableHead>
               <TableHead className="w-[72px] text-center">Visible</TableHead>
               <TableHead className="w-[72px] text-center"></TableHead>
@@ -171,19 +184,35 @@ export function ProductosTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="text-sm font-semibold text-brand-800 tabular-nums">
-                        {precioVenta != null ? formatPrice(precioVenta) : '—'}
+                    {precioVenta != null ? (
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-brand-800 tabular-nums whitespace-nowrap">
+                          {formatPrice(precioVenta)}
+                        </div>
+                        {item.precioVentaPresentacion && (
+                          <div
+                            className="text-[11px] leading-tight text-stone-500 truncate"
+                            title={`Precio por ${item.precioVentaPresentacion}`}
+                          >
+                            por {item.precioVentaPresentacion}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        Sin precio
                       </span>
-                      <button
-                        onClick={() => setSelectedProductForPrices(item)}
-                        className="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-brand-800 hover:text-brand-700 font-medium"
-                        title="Ver precios"
-                      >
-                        <Eye size={13} />
-                        Ver
-                      </button>
-                    </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <button
+                      onClick={() => setSelectedProductForPrices(item)}
+                      className="inline-flex items-center justify-center rounded-md p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                      title="Ver más precios"
+                      aria-label="Ver más precios"
+                    >
+                      <Banknote size={18} strokeWidth={2.25} />
+                    </button>
                   </TableCell>
                   <TableCell className="text-center">
                     <button
@@ -231,7 +260,7 @@ export function ProductosTable({
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => setProductoAEliminar(item)}
                         disabled={loadingIds.has(item.id)}
                         className="p-1.5 rounded-md transition-colors text-stone-400 hover:text-red-600 hover:bg-red-50"
                         title="Borrar"
@@ -259,7 +288,7 @@ export function ProductosTable({
             })}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-stone-500">
+                <TableCell colSpan={8} className="h-24 text-center text-stone-500">
                   No se encontraron productos.
                 </TableCell>
               </TableRow>

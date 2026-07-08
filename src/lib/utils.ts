@@ -31,3 +31,7 @@ export function truncate(str: string, length: number): string {
   if (!str) return '';
   return str.length > length ? str.substring(0, length) + '...' : str;
 }
+
+export function normalizeSearchQuery(value: string | null | undefined): string {
+  return (value ?? '').trim();
+}

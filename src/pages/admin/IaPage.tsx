@@ -3,6 +3,8 @@ import { api } from '../../api/client';
 import { Badge } from '../../components/ui/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { Modal } from '../../components/ui/Modal';
 import { ThumbsUp, ThumbsDown, Brain, ChevronDown, ChevronUp, GraduationCap, Upload, Trash2, BookCopy } from 'lucide-react';
 
 type Tab = 'consultas' | 'entrenamiento' | 'reglas';
@@ -192,6 +194,8 @@ export function IaPage() {
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const [guardandoEjemplo, setGuardandoEjemplo] = useState(false);
   const [origenConsultaId, setOrigenConsultaId] = useState<number | null>(null);
+  const [modalInfo, setModalInfo] = useState<{ title: string; message: string } | null>(null);
+  const [ejemploAEliminar, setEjemploAEliminar] = useState<IaEjemplo | null>(null);
 
   const loadConsultas = () => {
     const q =
@@ -244,7 +248,10 @@ export function IaPage() {
   const enviarMal = async (consulta: IaConsulta) => {
     const fb = getFeedback(consulta.id);
     if (!fb.correccion.trim()) {
-      alert('Indicá qué debió recomendar la IA (ej: chaleco bebé 80g, no adulto).');
+      setModalInfo({
+        title: 'Falta la corrección',
+        message: 'Indicá qué debió recomendar la IA, por ejemplo: chaleco bebé 80g, no adulto.',
+      });
       return;
     }
     await api.enviarIaFeedback(consulta.id, {
@@ -260,7 +267,10 @@ export function IaPage() {
 
   const convertirConsultaEnEjemplo = (consulta: IaConsulta) => {
     if (!consultaTieneResultado(consulta)) {
-      alert('Esta consulta no tiene una recomendación para convertir.');
+      setModalInfo({
+        title: 'No se puede convertir',
+        message: 'Esta consulta no tiene una recomendación para convertir en ejemplo.',
+      });
       return;
     }
     const fb = getFeedback(consulta.id);
@@ -287,7 +297,6 @@ export function IaPage() {
   };
 
   const eliminarEjemplo = async (id: number) => {
-    if (!confirm('¿Eliminar este ejemplo de entrenamiento?')) return;
     await api.eliminarIaEjemplo(id);
     loadEjemplos();
   };
@@ -299,7 +308,10 @@ export function IaPage() {
       setNuevoEjemplo((prev) => ({ ...prev, imagenUrl: res.url }));
     } catch (e) {
       console.error(e);
-      alert('No se pudo subir la imagen');
+      setModalInfo({
+        title: 'Error al subir imagen',
+        message: 'No se pudo subir la imagen.',
+      });
     } finally {
       setSubiendoImagen(false);
     }
@@ -307,13 +319,19 @@ export function IaPage() {
 
   const guardarEjemplo = async () => {
     if (!nuevoEjemplo.titulo.trim() || !nuevoEjemplo.descripcion.trim()) {
-      alert('Completá título y descripción del ejemplo.');
+      setModalInfo({
+        title: 'Faltan datos',
+        message: 'Completá título y descripción del ejemplo.',
+      });
       return;
     }
     try {
       JSON.parse(nuevoEjemplo.respuestaJson);
     } catch {
-      alert('La respuesta correcta debe ser JSON válido.');
+      setModalInfo({
+        title: 'JSON inválido',
+        message: 'La respuesta correcta debe ser JSON válido.',
+      });
       return;
     }
     setGuardandoEjemplo(true);
@@ -336,7 +354,10 @@ export function IaPage() {
       loadEjemplos();
     } catch (e) {
       console.error(e);
-      alert('Error al guardar el ejemplo');
+      setModalInfo({
+        title: 'Error al guardar',
+        message: 'No se pudo guardar el ejemplo de entrenamiento.',
+      });
     } finally {
       setGuardandoEjemplo(false);
     }
@@ -356,6 +377,36 @@ export function IaPage() {
 
   return (
     <div className="space-y-6">
+      <Modal
+        open={Boolean(modalInfo)}
+        title={modalInfo?.title || ''}
+        onClose={() => setModalInfo(null)}
+        maxWidthClassName="max-w-md"
+        footer={
+          <Button onClick={() => setModalInfo(null)}>
+            Entendido
+          </Button>
+        }
+      >
+        <p className="text-sm text-stone-600">{modalInfo?.message}</p>
+      </Modal>
+
+      <ConfirmModal
+        open={Boolean(ejemploAEliminar)}
+        title="Eliminar ejemplo de entrenamiento"
+        description={
+          ejemploAEliminar
+            ? `Se va a eliminar "${ejemploAEliminar.titulo}".`
+            : undefined
+        }
+        confirmLabel="Eliminar"
+        onClose={() => setEjemploAEliminar(null)}
+        onConfirm={() => {
+          if (!ejemploAEliminar) return;
+          void eliminarEjemplo(ejemploAEliminar.id).finally(() => setEjemploAEliminar(null));
+        }}
+      />
+
       <div>
         <h1 className="text-3xl font-bold text-stone-900 tracking-tight font-outfit flex items-center gap-2">
           <Brain className="h-8 w-8 text-brand-600" />
@@ -663,7 +714,7 @@ export function IaPage() {
                         <Button size="sm" variant="outline" onClick={() => toggleEjemplo(ex.id)}>
                           {ex.activa ? 'Desactivar' : 'Activar'}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => eliminarEjemplo(ex.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => setEjemploAEliminar(ex)}>
                           <Trash2 size={16} className="text-red-500" />
                         </Button>
                       </div>

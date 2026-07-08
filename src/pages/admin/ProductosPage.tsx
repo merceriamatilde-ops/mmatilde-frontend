@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Search, Plus } from 'lucide-react';
 import { Spinner } from '../../components/ui/Spinner';
+import { normalizeSearchQuery } from '../../lib/utils';
 
 export function ProductosPage() {
   const [data, setData] = useState<any>({ items: [], total: 0, page: 1, totalPages: 1 });
@@ -30,7 +31,8 @@ export function ProductosPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = { page: filters.page.toString(), pageSize: '50' };
-      if (filters.q) params.q = filters.q;
+      const q = normalizeSearchQuery(filters.q);
+      if (q) params.q = q;
       if (filters.categoriaId) params.categoriaId = filters.categoriaId;
       if (filters.subcategoriaId) params.subcategoriaId = filters.subcategoriaId;
       if (filters.proveedorId) params.proveedorId = filters.proveedorId;
@@ -55,7 +57,7 @@ export function ProductosPage() {
 
   const handleFilterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFilters(prev => ({ ...prev, page: 1 }));
+    setFilters(prev => ({ ...prev, page: 1, q: normalizeSearchQuery(prev.q) }));
   };
 
   const handleNewProduct = () => {
