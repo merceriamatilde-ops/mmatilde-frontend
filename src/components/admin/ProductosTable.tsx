@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Banknote, Star, StarOff, Pencil } from 'lucide-react';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, formatDateTimeAr } from '../../lib/utils';
 import { ProductoPreciosResumen } from './ProductoPreciosResumen';
 
 function PricesModal({
@@ -159,6 +159,7 @@ export function ProductosTable({
               <TableHead className="w-[88px] text-center">Más precios</TableHead>
               <TableHead className="w-[72px] text-center">Dest.</TableHead>
               <TableHead className="w-[72px] text-center">Visible</TableHead>
+              <TableHead className="w-[130px]">Últ. sync</TableHead>
               <TableHead className="w-[72px] text-center"></TableHead>
             </TableRow>
           </TableHeader>
@@ -237,6 +238,13 @@ export function ProductosTable({
                       />
                     </div>
                   </TableCell>
+                  <TableCell className="text-xs text-stone-500 whitespace-nowrap">
+                    {item.ultimaSync ? (
+                      <span title={formatDateTimeAr(item.ultimaSync)}>{formatDateTimeAr(item.ultimaSync)}</span>
+                    ) : (
+                      <span className="text-stone-400">Nunca</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <button
@@ -288,7 +296,7 @@ export function ProductosTable({
             })}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-stone-500">
+                <TableCell colSpan={9} className="h-24 text-center text-stone-500">
                   No se encontraron productos.
                 </TableCell>
               </TableRow>

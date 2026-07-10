@@ -13,6 +13,7 @@ export function ProductosPage() {
   const [data, setData] = useState<any>({ items: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -23,7 +24,14 @@ export function ProductosPage() {
     categoriaId: '',
     subcategoriaId: '',
     proveedorId: '',
+    tagId: '',
     activo: '',
+    destacado: '',
+    sinPrecio: false,
+    sinImagen: false,
+    sinSync: false,
+    syncDesde: '',
+    syncHasta: '',
     page: 1
   });
 
@@ -36,7 +44,14 @@ export function ProductosPage() {
       if (filters.categoriaId) params.categoriaId = filters.categoriaId;
       if (filters.subcategoriaId) params.subcategoriaId = filters.subcategoriaId;
       if (filters.proveedorId) params.proveedorId = filters.proveedorId;
+      if (filters.tagId) params.tagId = filters.tagId;
       if (filters.activo !== '') params.activo = filters.activo;
+      if (filters.destacado !== '') params.destacado = filters.destacado;
+      if (filters.sinPrecio) params.sinPrecio = 'true';
+      if (filters.sinImagen) params.sinImagen = 'true';
+      if (filters.sinSync) params.sinSync = 'true';
+      if (!filters.sinSync && filters.syncDesde) params.syncDesde = filters.syncDesde;
+      if (!filters.sinSync && filters.syncHasta) params.syncHasta = filters.syncHasta;
 
       const res = await api.getProductosAdmin(params);
       setData(res);
@@ -49,6 +64,7 @@ export function ProductosPage() {
 
   useEffect(() => {
     api.getCategoriasAdmin().then(res => setCategorias(res)).catch(console.error);
+    api.getTags().then(res => setTags(res)).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -147,11 +163,39 @@ export function ProductosPage() {
             </Select>
           </div>
 
+          <div className="w-52">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Tag / Colección</label>
+            <Select
+              value={filters.tagId}
+              onChange={e => setFilters(prev => ({ ...prev, tagId: e.target.value, page: 1 }))}
+            >
+              <option value="">Todos</option>
+              {tags.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre}{t.productosCount != null ? ` (${t.productosCount})` : ''}
+                  {!t.activo ? ' · inactivo' : ''}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="w-40">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Destacado</label>
+            <Select
+              value={filters.destacado}
+              onChange={e => setFilters(prev => ({ ...prev, destacado: e.target.value, page: 1 }))}
+            >
+              <option value="">Todos</option>
+              <option value="true">Solo destacados</option>
+              <option value="false">No destacados</option>
+            </Select>
+          </div>
+
           <div className="w-40">
             <label className="text-sm font-medium text-stone-700 mb-1 block">Estado</label>
             <Select
               value={filters.activo}
-              onChange={e => setFilters(prev => ({ ...prev, activo: e.target.value }))}
+              onChange={e => setFilters(prev => ({ ...prev, activo: e.target.value, page: 1 }))}
             >
               <option value="">Todos</option>
               <option value="true">Visibles</option>
@@ -161,6 +205,61 @@ export function ProductosPage() {
 
           <Button type="submit">Filtrar</Button>
         </form>
+
+        <div className="mt-4 pt-4 border-t border-stone-100 flex flex-wrap gap-x-6 gap-y-3 items-end">
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-stone-300 text-brand-700 focus:ring-brand-500"
+              checked={filters.sinPrecio}
+              onChange={e => setFilters(prev => ({ ...prev, sinPrecio: e.target.checked, page: 1 }))}
+            />
+            Sin precio
+          </label>
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-stone-300 text-brand-700 focus:ring-brand-500"
+              checked={filters.sinImagen}
+              onChange={e => setFilters(prev => ({ ...prev, sinImagen: e.target.checked, page: 1 }))}
+            />
+            Sin imagen
+          </label>
+          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-stone-300 text-brand-700 focus:ring-brand-500"
+              checked={filters.sinSync}
+              onChange={e => setFilters(prev => ({
+                ...prev,
+                sinSync: e.target.checked,
+                syncDesde: e.target.checked ? '' : prev.syncDesde,
+                syncHasta: e.target.checked ? '' : prev.syncHasta,
+                page: 1,
+              }))}
+            />
+            Nunca sincronizado
+          </label>
+
+          <div className="w-40">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Sync desde</label>
+            <Input
+              type="date"
+              value={filters.syncDesde}
+              disabled={filters.sinSync}
+              onChange={e => setFilters(prev => ({ ...prev, syncDesde: e.target.value, page: 1 }))}
+            />
+          </div>
+          <div className="w-40">
+            <label className="text-sm font-medium text-stone-700 mb-1 block">Sync hasta</label>
+            <Input
+              type="date"
+              value={filters.syncHasta}
+              disabled={filters.sinSync}
+              onChange={e => setFilters(prev => ({ ...prev, syncHasta: e.target.value, page: 1 }))}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="relative min-h-[400px]">

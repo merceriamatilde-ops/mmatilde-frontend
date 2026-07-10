@@ -35,3 +35,14 @@ export function truncate(str: string, length: number): string {
 export function normalizeSearchQuery(value: string | null | undefined): string {
   return (value ?? '').trim();
 }
+
+export function formatDateTimeAr(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  const date = typeof value === 'string' ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('es-AR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }).format(date);
+}
