@@ -6,6 +6,10 @@ import { Switch } from '../ui/Switch';
 import { Select } from '../ui/Select';
 import { api } from '../../api/client';
 import { normalizeSearchQuery } from '../../lib/utils';
+import {
+  resolveMakorPublicDescription,
+  resolveMakorPublicTitle,
+} from '../../lib/makorPublicContent';
 import { toast } from 'sonner';
 import { ProductoPreciosSection } from './ProductoPreciosSection';
 
@@ -98,12 +102,16 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
 
       setFormData({
         nombre: product.nombre || '',
-        nombrePublico: product.nombrePublico || '',
+        nombrePublico: product.proveedorId === 1
+          ? resolveMakorPublicTitle(product.nombre, product.nombrePublico)
+          : (product.nombrePublico || ''),
         codigo: product.codigoMakor || '',
         categoriaId: product.categoriaId?.toString() || '',
         subcategoriaId: product.subcategoriaId?.toString() || '',
         descripcion: product.descripcion || '',
-        descripcionPublica: product.descripcionPublica || '',
+        descripcionPublica: product.proveedorId === 1
+          ? resolveMakorPublicDescription(product.descripcion, product.descripcionPublica)
+          : (product.descripcionPublica || ''),
         precioBase: product.precioMayorista?.toString() || '',
         destacado: product.destacado || false,
         visible: product.activo ?? true,
@@ -309,7 +317,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
                       <label className="text-sm font-medium text-stone-700 mb-1 block">Descripción pública</label>
                       <textarea
                         className="flex w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 min-h-[100px]"
-                        placeholder="Descripción para el cliente..."
+                        placeholder={resolveMakorPublicDescription(formData.descripcion) || 'Descripción para el cliente...'}
                         value={formData.descripcionPublica}
                         onChange={e => setFormData({ ...formData, descripcionPublica: e.target.value })}
                       />
