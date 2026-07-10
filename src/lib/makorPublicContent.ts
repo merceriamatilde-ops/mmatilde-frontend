@@ -13,6 +13,7 @@ const SUFFIX_PATTERNS = [
   /\s+x\s*\d+(?:[.,]\d+)?\s*(?:u(?:n(?:idad(?:es)?)?)?|pzas?|piezas?)\b$/i,
   /\s+\d+(?:[.,]\d+)?\s*(?:u(?:n(?:idad(?:es)?)?)?|pzas?|piezas?)\b$/i,
   /\s+x\s*\d+(?:[.,]\d+)?\b$/i,
+  /\s+x\s*$/i,
 ];
 
 export function stripUnidadSufijo(nombre: string): string {
@@ -45,7 +46,8 @@ function isDefaultMakorTitle(
   const stored = nombrePublico.trim();
   const raw = nombre?.trim() ?? '';
   if (!raw) return false;
-  return stored === raw || stored === suggestMakorPublicTitle(raw);
+  const suggested = suggestMakorPublicTitle(raw);
+  return stored === raw || stored === suggested || suggestMakorPublicTitle(stored) === suggested;
 }
 
 export function resolveMakorPublicTitle(

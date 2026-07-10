@@ -4,10 +4,11 @@ import { Switch } from '../ui/Switch';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { Modal } from '../ui/Modal';
-import { Banknote, Star, StarOff, Pencil } from 'lucide-react';
+import { Banknote, Star, StarOff, Pencil, RefreshCw } from 'lucide-react';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
 import { formatPrice, formatDateTimeAr } from '../../lib/utils';
+import { resolveMakorPublicTitle } from '../../lib/makorPublicContent';
 import { ProductoPreciosResumen } from './ProductoPreciosResumen';
 
 function PricesModal({
@@ -69,6 +70,53 @@ export function ProductosTable({
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
   const [selectedProductForPrices, setSelectedProductForPrices] = useState<any>(null);
   const [productoAEliminar, setProductoAEliminar] = useState<any>(null);
+  const [showCatalogNames, setShowCatalogNames] = useState(() => {
+    try {
+      return localStorage.getItem('mmatilde_productos_nombre_catalogo') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleNombreVista = () => {
+    setShowCatalogNames((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('mmatilde_productos_nombre_catalogo', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const catalogTitle = (item: any) => {
+    const nombrePublico = item.nombrePublico ?? item.NombrePublico ?? null;
+    if (item.proveedorId === 1) {
+      return resolveMakorPublicTitle(item.nombre, nombrePublico);
+    }
+    return nombrePublico?.trim() || item.nombre;
+  };
+
+  const displayNombre = (item: any) =>
+    showCatalogNames ? catalogTitle(item) : item.nombre;
+
+  const handleResync = async (id: number) => {
+    setLoadingIds((prev) => new Set(prev).add(id));
+    try {
+      await api.syncProducto(id);
+      toast.success('Producto sincronizado');
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'No se pudo sincronizar');
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const handleDelete = async (id: number) => {
     setLoadingIds((prev) => new Set(prev).add(id));
@@ -153,7 +201,19 @@ export function ProductosTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]">Código</TableHead>
-              <TableHead>Producto</TableHead>
+              <TableHead>
+                <button
+                  type="button"
+                  onClick={toggleNombreVista}
+                  className="text-left hover:text-brand-700 transition-colors"
+                  title="Clic para alternar nombre original / catálogo"
+                >
+                  Producto
+                  <span className="block text-[10px] font-normal text-stone-400 normal-case tracking-normal">
+                    {showCatalogNames ? 'Catálogo · clic = original' : 'Original · clic = catálogo'}
+                  </span>
+                </button>
+              </TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead className="w-[140px]">Precio venta</TableHead>
               <TableHead className="w-[88px] text-center">Más precios</TableHead>
@@ -172,9 +232,18 @@ export function ProductosTable({
                     {item.codigoMakor || '—'}
                   </TableCell>
                   <TableCell className="max-w-[240px]">
-                    <div className="font-medium text-stone-900 truncate" title={item.nombre}>
-                      {item.nombre}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleNombreVista}
+                      className="font-medium text-stone-900 truncate text-left w-full hover:text-brand-800 transition-colors"
+                      title={
+                        showCatalogNames
+                          ? `Catálogo: ${displayNombre(item)}\nClic para ver original`
+                          : `Original: ${item.nombre}\nClic para ver catálogo`
+                      }
+                    >
+                      {displayNombre(item)}
+                    </button>
                   </TableCell>
                   <TableCell className="max-w-[160px]">
                     <span
@@ -239,11 +308,24 @@ export function ProductosTable({
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-stone-500 whitespace-nowrap">
-                    {item.ultimaSync ? (
-                      <span title={formatDateTimeAr(item.ultimaSync)}>{formatDateTimeAr(item.ultimaSync)}</span>
-                    ) : (
-                      <span className="text-stone-400">Nunca</span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {item.ultimaSync ? (
+                        <span title={formatDateTimeAr(item.ultimaSync)}>{formatDateTimeAr(item.ultimaSync)}</span>
+                      ) : (
+                        <span className="text-stone-400">Nunca</span>
+                      )}
+                      {item.codigoMakor && (
+                        <button
+                          type="button"
+                          onClick={() => handleResync(item.id)}
+                          disabled={loadingIds.has(item.id)}
+                          className="p-1 text-sky-600 rounded hover:bg-sky-50 transition-colors disabled:opacity-40 shrink-0"
+                          title="Re-sincronizar con Makor"
+                        >
+                          <RefreshCw size={14} className={loadingIds.has(item.id) ? 'animate-spin' : ''} />
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

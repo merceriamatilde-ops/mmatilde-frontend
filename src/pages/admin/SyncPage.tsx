@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { BookOpen } from 'lucide-react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { BookOpen, RefreshCw, Search } from 'lucide-react';
 import { SyncButton } from '../../components/admin/SyncButton';
 import { api } from '../../api/client';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table';
+import { Spinner } from '../../components/ui/Spinner';
+import { toast } from 'sonner';
+import { formatDateTimeAr, normalizeSearchQuery } from '../../lib/utils';
 
 function parseJsonSafe<T>(raw?: string | null, fallback: T = [] as T): T {
   if (!raw) return fallback;
@@ -61,6 +65,11 @@ function normalizeRecentSyncKey(value: unknown) {
 export function SyncPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [productoQuery, setProductoQuery] = useState('');
+  const [productoResults, setProductoResults] = useState<any[]>([]);
+  const [productoSearchLoading, setProductoSearchLoading] = useState(false);
+  const [syncingIds, setSyncingIds] = useState<Set<number>>(new Set());
+  const [syncingLogIds, setSyncingLogIds] = useState<Set<number>>(new Set());
 
   const loadLogs = () => {
     api.getSyncLogs().then(setLogs).catch(console.error);
@@ -69,6 +78,78 @@ export function SyncPage() {
   useEffect(() => {
     loadLogs();
   }, []);
+
+  useEffect(() => {
+    const q = normalizeSearchQuery(productoQuery);
+    if (q.length < 2) {
+      setProductoResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setProductoSearchLoading(true);
+      try {
+        const res = await api.getProductosAdmin({ q, pageSize: '12', proveedorId: '1' });
+        setProductoResults((res.items || []).filter((p: any) => p.codigoMakor));
+      } catch {
+        setProductoResults([]);
+      } finally {
+        setProductoSearchLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [productoQuery]);
+
+  const handleResyncLog = useCallback(async (log: any) => {
+    const terms = parseJsonSafe<string[]>(log.termsJson);
+    if (terms.length === 0) {
+      toast.error('Este registro no tiene términos para re-sincronizar');
+      return;
+    }
+
+    setSyncingLogIds((prev) => new Set(prev).add(log.id));
+    toast.info('Re-sincronización iniciada...');
+    try {
+      const res = await api.executeSync(terms);
+      if (res.success) {
+        toast.success(`Re-sync completado: ${res.count} productos procesados`);
+        loadLogs();
+      } else {
+        toast.error('Ocurrió un error en la re-sincronización');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'No se pudo re-sincronizar');
+    } finally {
+      setSyncingLogIds((prev) => {
+        const next = new Set(prev);
+        next.delete(log.id);
+        return next;
+      });
+    }
+  }, []);
+
+  const handleResyncProducto = useCallback(async (id: number) => {
+    setSyncingIds((prev) => new Set(prev).add(id));
+    try {
+      await api.syncProducto(id);
+      toast.success('Producto re-sincronizado');
+      loadLogs();
+      const q = normalizeSearchQuery(productoQuery);
+      if (q.length >= 2) {
+        const res = await api.getProductosAdmin({ q, pageSize: '12', proveedorId: '1' });
+        setProductoResults((res.items || []).filter((p: any) => p.codigoMakor));
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'No se pudo re-sincronizar');
+    } finally {
+      setSyncingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }, [productoQuery]);
 
   const recentCategorySyncs = React.useMemo(() => {
     const now = new Date();
@@ -187,9 +268,21 @@ export function SyncPage() {
         onClose={() => setSelectedLog(null)}
         maxWidthClassName="max-w-3xl"
         footer={
-          <Button variant="outline" onClick={() => setSelectedLog(null)}>
-            Cerrar
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setSelectedLog(null)}>
+              Cerrar
+            </Button>
+            {selectedLog && parseJsonSafe<string[]>(selectedLog.termsJson).length > 0 && (
+              <Button
+                type="button"
+                disabled={syncingLogIds.has(selectedLog.id)}
+                onClick={() => void handleResyncLog(selectedLog)}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1.5 ${syncingLogIds.has(selectedLog.id) ? 'animate-spin' : ''}`} />
+                Volver a sincronizar
+              </Button>
+            )}
+          </>
         }
       >
         {selectedLog ? renderDetalle(selectedLog) : null}
@@ -204,6 +297,62 @@ export function SyncPage() {
         <SyncButton onSyncComplete={loadLogs} recentCategorySyncs={recentCategorySyncs} />
       </div>
 
+      <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm space-y-4">
+        <div>
+          <h3 className="text-lg font-medium text-stone-900">Re-sincronizar un producto</h3>
+          <p className="text-sm text-stone-500 mt-1">
+            Buscá por nombre o código Makor y actualizá solo ese artículo sin correr una sync masiva.
+          </p>
+        </div>
+
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <Input
+            placeholder="Nombre o código Makor..."
+            className="pl-9"
+            value={productoQuery}
+            onChange={(e) => setProductoQuery(e.target.value)}
+          />
+        </div>
+
+        {productoSearchLoading && (
+          <div className="flex justify-center py-6">
+            <Spinner size={28} />
+          </div>
+        )}
+
+        {!productoSearchLoading && normalizeSearchQuery(productoQuery).length >= 2 && productoResults.length === 0 && (
+          <p className="text-sm text-stone-500 py-2">No se encontraron productos Makor.</p>
+        )}
+
+        {!productoSearchLoading && productoResults.length > 0 && (
+          <div className="divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden">
+            {productoResults.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 p-3 bg-white hover:bg-stone-50/80">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-stone-900 truncate">{p.nombre}</p>
+                  <p className="text-xs text-stone-500">
+                    {p.codigoMakor}
+                    {p.ultimaSync ? ` · ${formatDateTimeAr(p.ultimaSync)}` : ' · Nunca sincronizado'}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={syncingIds.has(p.id)}
+                  onClick={() => void handleResyncProducto(p.id)}
+                  className="shrink-0"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1.5 ${syncingIds.has(p.id) ? 'animate-spin' : ''}`} />
+                  Re-sync
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
         <h3 className="text-lg font-medium text-stone-900 mb-4">Historial Reciente</h3>
         <Table>
@@ -214,7 +363,7 @@ export function SyncPage() {
               <TableHead className="text-right">Nuevos</TableHead>
               <TableHead className="text-right">Actualizados</TableHead>
               <TableHead className="text-right">Errores</TableHead>
-              <TableHead className="text-center">Detalle</TableHead>
+              <TableHead className="text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,14 +375,32 @@ export function SyncPage() {
                 <TableCell className="text-right font-medium text-brand-600">+{log.productosActualizados}</TableCell>
                 <TableCell className="text-right text-red-600">{log.errores}</TableCell>
                 <TableCell className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedLog(log)}
-                    className="inline-flex items-center justify-center rounded-md p-2 text-stone-500 transition-colors hover:bg-stone-100 hover:text-brand-700"
-                    title="Ver detalle"
-                  >
-                    <BookOpen size={17} />
-                  </button>
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLog(log)}
+                      className="inline-flex items-center justify-center rounded-md p-2 text-stone-500 transition-colors hover:bg-stone-100 hover:text-brand-700"
+                      title="Ver detalle"
+                    >
+                      <BookOpen size={17} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleResyncLog(log)}
+                      disabled={
+                        syncingLogIds.has(log.id) ||
+                        parseJsonSafe<string[]>(log.termsJson).length === 0
+                      }
+                      className="inline-flex items-center justify-center rounded-md p-2 text-sky-600 transition-colors hover:bg-sky-50 disabled:opacity-40 disabled:pointer-events-none"
+                      title={
+                        parseJsonSafe<string[]>(log.termsJson).length === 0
+                          ? 'Sin términos guardados'
+                          : 'Volver a sincronizar estos términos'
+                      }
+                    >
+                      <RefreshCw size={17} className={syncingLogIds.has(log.id) ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

@@ -46,8 +46,7 @@ export function MediosPagoSection() {
     setEditingId(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!nombre.trim()) return;
 
     const payload = {
@@ -137,20 +136,26 @@ export function MediosPagoSection() {
         Gestioná los medios de cobro del mostrador. El predeterminado se selecciona automáticamente al registrar ventas.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 items-end">
+      <div className="flex flex-col sm:flex-row gap-3 items-end">
         <div className="flex-1 w-full space-y-1">
           <label className="admin-field-label">Nombre</label>
           <Input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Ej: Tarjeta débito"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleSubmit();
+              }
+            }}
           />
         </div>
         <div className="w-24 space-y-1">
           <label className="admin-field-label">Orden</label>
           <Input type="number" value={orden} onChange={(e) => setOrden(e.target.value)} />
         </div>
-        <Button type="submit">
+        <Button type="button" onClick={() => void handleSubmit()}>
           <Plus className="h-4 w-4 mr-1" />
           {editingId ? 'Actualizar' : 'Agregar'}
         </Button>
@@ -159,7 +164,7 @@ export function MediosPagoSection() {
             Cancelar
           </Button>
         )}
-      </form>
+      </div>
 
       <div className="divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden">
         {medios.length === 0 ? (

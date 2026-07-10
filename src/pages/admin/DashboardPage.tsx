@@ -33,23 +33,23 @@ function monthStartInput() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
 }
 
-function ResumenCard({
-  label,
+function ResumenDiaCard({
   facturacion,
   ganancia,
   ventas,
   ticket,
+  turnos,
 }: {
-  label: string;
   facturacion: number;
   ganancia: number;
   ventas: number;
   ticket: number;
+  turnos: { turno: TurnoVentaItem; data: any }[];
 }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-stone-700 mb-4">{label}</h3>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm lg:col-span-2">
+      <h3 className="text-sm font-semibold text-stone-700 mb-4">Resumen del día</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         <div>
           <p className="text-xs uppercase tracking-wide text-stone-500">Facturado</p>
           <p className="text-2xl font-bold text-stone-900 mt-0.5">{fmt(facturacion)}</p>
@@ -67,6 +67,35 @@ function ResumenCard({
           <p className="text-lg font-semibold text-stone-900 mt-0.5">{fmt(ticket)}</p>
         </div>
       </div>
+
+      {turnos.length > 0 && (
+        <div className="border-t border-stone-100 pt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-3">Por turno</p>
+          <div className={`grid gap-3 ${turnos.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            {turnos.map(({ turno, data }, i) => (
+              <div
+                key={turno.slug}
+                className="rounded-lg border border-stone-100 bg-stone-50/60 p-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div
+                    className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                      i % 2 === 0 ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700'
+                    }`}
+                  >
+                    {i % 2 === 0 ? <Sun className="h-4 w-4" /> : <Sunset className="h-4 w-4" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-stone-900 truncate">{turno.nombre}</p>
+                    <p className="text-xs text-stone-500">{data?.cantidadVentas ?? 0} ventas</p>
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-stone-900 shrink-0 ml-2">{fmt(data?.totalFacturado ?? 0)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -134,42 +163,35 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ResumenCard
-          label="Resumen del día"
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ResumenDiaCard
           facturacion={kpiDia?.facturacion ?? 0}
           ganancia={kpiDia?.gananciaNeta ?? 0}
           ventas={kpiDia?.cantidadVentas ?? 0}
           ticket={kpiDia?.ticketPromedio ?? 0}
+          turnos={turnosResumen}
         />
-        <ResumenCard
-          label="Resumen del mes"
-          facturacion={kpiMes?.facturacion ?? 0}
-          ganancia={kpiMes?.gananciaNeta ?? 0}
-          ventas={kpiMes?.cantidadVentas ?? 0}
-          ticket={kpiMes?.ticketPromedio ?? 0}
-        />
-      </div>
-
-      <div className={`grid gap-3 ${turnosResumen.length > 2 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'}`}>
-        {turnosResumen.map(({ turno, data }, i) => (
-          <div key={turno.slug} className="rounded-xl border border-stone-200 bg-white p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                  i % 2 === 0 ? 'bg-amber-50 text-amber-700' : 'bg-indigo-50 text-indigo-700'
-                }`}
-              >
-                {i % 2 === 0 ? <Sun className="h-5 w-5" /> : <Sunset className="h-5 w-5" />}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-stone-900">Turno {turno.nombre.toLowerCase()}</p>
-                <p className="text-xs text-stone-500">{data?.cantidadVentas ?? 0} ventas hoy</p>
-              </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-stone-700 mb-4">Resumen del mes</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-stone-500">Facturado</p>
+              <p className="text-2xl font-bold text-stone-900 mt-0.5">{fmt(kpiMes?.facturacion ?? 0)}</p>
             </div>
-            <p className="text-lg font-bold text-stone-900">{fmt(data?.totalFacturado ?? 0)}</p>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-stone-500">Ganancia est.</p>
+              <p className="text-2xl font-bold text-emerald-700 mt-0.5">{fmt(kpiMes?.gananciaNeta ?? 0)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-stone-500">Ventas</p>
+              <p className="text-lg font-semibold text-stone-900 mt-0.5">{kpiMes?.cantidadVentas ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-stone-500">Ticket prom.</p>
+              <p className="text-lg font-semibold text-stone-900 mt-0.5">{fmt(kpiMes?.ticketPromedio ?? 0)}</p>
+            </div>
           </div>
-        ))}
+        </div>
       </div>
 
       {mes?.kpisPeriodoAnterior && kpiMes && (

@@ -48,7 +48,8 @@ export function ConfigForm() {
   if (loading) return <div className="py-8 text-center"><Spinner /></div>;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
+    <div className="space-y-8 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Información General</h3>
         <div className="grid grid-cols-2 gap-4">
@@ -113,16 +114,6 @@ export function ConfigForm() {
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-stone-200 pt-6">
-        <h3 className="text-lg font-medium">Turnos de venta</h3>
-        <TurnosVentaSection />
-      </div>
-
-      <div className="space-y-4 border-t border-stone-200 pt-6">
-        <h3 className="text-lg font-medium">Medios de pago</h3>
-        <MediosPagoSection />
-      </div>
-
       <div className="space-y-4 border-t border-stone-200 pt-6 pb-4">
         <h3 className="text-lg font-medium">Horarios de Atención</h3>
         <p className="text-sm text-stone-500">Agrupá los días que comparten el mismo horario. Podés agregar turnos mañana y tarde.</p>
@@ -135,6 +126,17 @@ export function ConfigForm() {
       <Button type="submit" disabled={saving}>
         {saving ? 'Guardando...' : 'Guardar Cambios'}
       </Button>
-    </form>
+      </form>
+
+      <div className="space-y-4 border-t border-stone-200 pt-6">
+        <h3 className="text-lg font-medium">Turnos de venta</h3>
+        <TurnosVentaSection />
+      </div>
+
+      <div className="space-y-4 border-t border-stone-200 pt-6">
+        <h3 className="text-lg font-medium">Medios de pago</h3>
+        <MediosPagoSection />
+      </div>
+    </div>
   );
 }

@@ -120,8 +120,7 @@ export function TurnosVentaSection() {
     setEditingId(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!nombre.trim()) return;
 
     const payload = {
@@ -221,13 +220,19 @@ export function TurnosVentaSection() {
 
       <TimelinePreview turnos={turnos} />
 
-      <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-3 items-end">
+      <div className="flex flex-col lg:flex-row gap-3 items-end">
         <div className="flex-1 w-full space-y-1">
           <label className="admin-field-label">Nombre del turno</label>
           <Input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Ej: Mañana, Tarde, Noche"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void handleSubmit();
+              }
+            }}
           />
         </div>
         <div className="w-32 space-y-1">
@@ -238,7 +243,7 @@ export function TurnosVentaSection() {
           <label className="admin-field-label">Orden</label>
           <Input type="number" value={orden} onChange={(e) => setOrden(e.target.value)} />
         </div>
-        <Button type="submit">
+        <Button type="button" onClick={() => void handleSubmit()}>
           <Plus className="h-4 w-4 mr-1" />
           {editingId ? 'Actualizar' : 'Agregar'}
         </Button>
@@ -247,7 +252,7 @@ export function TurnosVentaSection() {
             Cancelar
           </Button>
         )}
-      </form>
+      </div>
 
       <div className="divide-y divide-stone-100 border border-stone-200 rounded-lg overflow-hidden">
         {turnos.map((t, i) => {

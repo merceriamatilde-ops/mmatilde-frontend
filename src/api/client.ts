@@ -80,6 +80,7 @@ export const api = {
   createProducto: (data: any) => apiFetch<any>('/productos', { method: 'POST', body: JSON.stringify(data) }),
   updateProducto: (id: number, data: any) => apiFetch<any>(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProducto: (id: number) => apiFetch<any>(`/productos/${id}`, { method: 'DELETE' }),
+  syncProducto: (id: number) => apiFetch<any>(`/productos/${id}/sync`, { method: 'POST' }),
   toggleProductoActivo: (id: number, activo: boolean) => apiFetch<any>(`/productos/${id}/toggle-activo`, { method: 'PUT', body: JSON.stringify({ value: activo }) }),
   toggleProductoDestacado: (id: number, destacado: boolean) => apiFetch<any>(`/productos/${id}/toggle-destacado`, { method: 'PUT', body: JSON.stringify({ value: destacado }) }),
   bulkToggleProductos: (ids: number[], activo: boolean) => apiFetch<any>('/productos/bulk-toggle', { method: 'PUT', body: JSON.stringify({ ids, activo }) }),
