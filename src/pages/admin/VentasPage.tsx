@@ -17,6 +17,7 @@ import {
   type TurnoVentaItem,
 } from '../../lib/turnosVenta';
 import { estimarGananciaPreview } from '../../lib/gananciaPreview';
+import { calcularVentaDescuentos } from '../../lib/ventaDescuentos';
 import type { ModoOrigenEconomico } from '../../components/admin/productoPreciosLabels';
 
 type SortField = 'fecha' | 'total' | 'ganancia' | 'items' | 'turno' | 'medio';
@@ -45,6 +46,8 @@ type LineaDraft = {
   precioUnitario: number;
   unidadVenta?: string;
   gananciaUnitaria?: number;
+  descuentoPorcentaje?: number;
+  descuentoMonto?: number;
   modoOrigenEconomico?: string;
   costoReferencia?: number | null;
   comisionPorcentaje?: number | null;
@@ -124,6 +127,8 @@ async function hydrateLineaFromVenta(l: {
   cantidad: number;
   precioUnitarioVenta: number;
   gananciaNetaEstimada?: number;
+  descuentoPorcentaje?: number;
+  descuentoMonto?: number;
 }): Promise<LineaDraft> {
   const detail = await api.getProductoPrecioVenta(l.productoId);
   const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
@@ -151,6 +156,9 @@ async function hydrateLineaFromVenta(l: {
     precioUnitario: l.precioUnitarioVenta,
     unidadVenta: l.presentacionNombre ?? pres?.nombre,
     gananciaUnitaria: (l.gananciaNetaEstimada ?? 0) / (l.cantidad || 1),
+    descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
+    descuentoMonto:
+      (l.descuentoPorcentaje ?? 0) > 0 ? 0 : (l.descuentoMonto ?? 0),
     modoOrigenEconomico: detail.modoOrigenEconomico,
     costoReferencia: pres?.costoReferencia ?? detail.costoReferencia,
     comisionPorcentaje: null,
@@ -266,6 +274,9 @@ export function VentasPage() {
   const [turnoManual, setTurnoManual] = useState(false);
   const [medioPagoSlug, setMedioPagoSlug] = useState('efectivo');
   const [notas, setNotas] = useState('');
+  const [descuentoGlobalModo, setDescuentoGlobalModo] = useState<'porcentaje' | 'monto'>('porcentaje');
+  const [descuentoGlobalPorcentaje, setDescuentoGlobalPorcentaje] = useState(0);
+  const [descuentoGlobalMonto, setDescuentoGlobalMonto] = useState(0);
   const [lineas, setLineas] = useState<LineaDraft[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -304,18 +315,27 @@ export function VentasPage() {
     [turno, turnosVenta, turnosActivos]
   );
 
-  const total = useMemo(
-    () => lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0),
-    [lineas]
-  );
-  const gananciaTotal = useMemo(
-    () =>
-      lineas.reduce(
-        (acc, l) => acc + calcGananciaLinea(l, l.precioUnitario) * l.cantidad,
-        0
-      ),
-    [lineas]
-  );
+  const calculoVenta = useMemo(() => {
+    const inputs = lineas.map((l) => ({
+      cantidad: l.cantidad,
+      precioUnitario: l.precioUnitario,
+      gananciaBrutaLinea: calcGananciaLinea(l, l.precioUnitario) * l.cantidad,
+      descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
+      descuentoMonto: l.descuentoMonto ?? 0,
+    }));
+    return calcularVentaDescuentos(
+      inputs,
+      descuentoGlobalModo === 'porcentaje' ? descuentoGlobalPorcentaje : 0,
+      descuentoGlobalModo === 'monto' ? descuentoGlobalMonto : null
+    );
+  }, [lineas, descuentoGlobalModo, descuentoGlobalPorcentaje, descuentoGlobalMonto]);
+
+  const subtotalBruto = calculoVenta.subtotalBruto;
+  const total = calculoVenta.total;
+  const gananciaTotal = calculoVenta.gananciaNetaEstimada;
+  const descuentoGlobalAplicado = calculoVenta.descuentoGlobalMonto;
+  const descuentoLineasTotal = calculoVenta.lineas.reduce((s, x) => s + x.descuentoLineaMonto, 0);
+  const hayDescuentos = descuentoLineasTotal > 0 || descuentoGlobalAplicado > 0;
 
   useEffect(() => {
     api.getMediosPagoActivos()
@@ -426,6 +446,15 @@ export function VentasPage() {
           if (payload.medioPagoSlug) setMedioPagoSlug(payload.medioPagoSlug);
           if (payload.turno) setTurno(payload.turno);
           if (typeof payload.turnoManual === 'boolean') setTurnoManual(payload.turnoManual);
+          if (payload.descuentoGlobalModo === 'monto' || payload.descuentoGlobalModo === 'porcentaje') {
+            setDescuentoGlobalModo(payload.descuentoGlobalModo);
+          }
+          if (typeof payload.descuentoGlobalPorcentaje === 'number') {
+            setDescuentoGlobalPorcentaje(payload.descuentoGlobalPorcentaje);
+          }
+          if (typeof payload.descuentoGlobalMonto === 'number') {
+            setDescuentoGlobalMonto(payload.descuentoGlobalMonto);
+          }
         }
       } catch {
         /* sin carrito previo */
@@ -454,12 +483,15 @@ export function VentasPage() {
           medioPagoSlug,
           turno,
           turnoManual,
+          descuentoGlobalModo,
+          descuentoGlobalPorcentaje,
+          descuentoGlobalMonto,
         })
         .catch(() => {});
     }, 700);
 
     return () => window.clearTimeout(timer);
-  }, [lineas, notas, medioPagoSlug, turno, turnoManual, editandoId]);
+  }, [lineas, notas, medioPagoSlug, turno, turnoManual, descuentoGlobalModo, descuentoGlobalPorcentaje, descuentoGlobalMonto, editandoId]);
 
   const resetForm = () => {
     setFecha(todayInput());
@@ -469,6 +501,9 @@ export function VentasPage() {
     setTurno(inferirTurnoSlug(t, turnosVenta));
     setMedioPagoSlug(defaultMedioSlug);
     setNotas('');
+    setDescuentoGlobalModo('porcentaje');
+    setDescuentoGlobalPorcentaje(0);
+    setDescuentoGlobalMonto(0);
     setLineas([]);
     setQuery('');
     setEditandoId(null);
@@ -590,12 +625,16 @@ export function VentasPage() {
         turno,
         medioPagoSlug,
         notas: notas || null,
+        descuentoGlobalPorcentaje: descuentoGlobalModo === 'porcentaje' ? descuentoGlobalPorcentaje : 0,
+        descuentoGlobalMonto: descuentoGlobalModo === 'monto' ? descuentoGlobalMonto : null,
         lineas: lineas.map((l) => ({
           productoId: l.productoId,
           varianteId: l.varianteId ?? null,
           presentacionId: l.presentacionId ?? null,
           cantidad: l.cantidad,
           precioUnitario: l.precioUnitario,
+          descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
+          descuentoMonto: (l.descuentoPorcentaje ?? 0) > 0 ? null : (l.descuentoMonto ?? 0) || null,
         })),
       };
       if (editandoId) {
@@ -665,6 +704,20 @@ export function VentasPage() {
       setEditandoId(id);
       setTab('nueva');
 
+      if ((v.descuentoGlobalMonto ?? 0) > 0) {
+        setDescuentoGlobalModo('monto');
+        setDescuentoGlobalMonto(v.descuentoGlobalMonto);
+        setDescuentoGlobalPorcentaje(0);
+      } else if ((v.descuentoGlobalPorcentaje ?? 0) > 0) {
+        setDescuentoGlobalModo('porcentaje');
+        setDescuentoGlobalPorcentaje(v.descuentoGlobalPorcentaje);
+        setDescuentoGlobalMonto(0);
+      } else {
+        setDescuentoGlobalModo('porcentaje');
+        setDescuentoGlobalPorcentaje(0);
+        setDescuentoGlobalMonto(0);
+      }
+
       const lineasEdit = await Promise.all(
         v.lineas.map(async (l: any) => {
           try {
@@ -684,6 +737,9 @@ export function VentasPage() {
               precioUnitario: l.precioUnitarioVenta,
               unidadVenta: l.presentacionNombre ?? undefined,
               gananciaUnitaria: l.gananciaNetaEstimada / (l.cantidad || 1),
+              descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
+              descuentoMonto:
+                (l.descuentoPorcentaje ?? 0) > 0 ? 0 : (l.descuentoMonto ?? 0),
             } satisfies LineaDraft;
           }
         })
@@ -909,19 +965,22 @@ export function VentasPage() {
             )}
 
             {lineas.length > 0 && (
-              <div className="border border-stone-200 rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border border-stone-200 rounded-lg overflow-x-auto">
+                <table className="w-full min-w-[42rem] text-sm">
                   <thead className="bg-stone-50 text-stone-500 text-xs uppercase">
                     <tr>
                       <th className="text-left px-3 py-2">Producto</th>
                       <th className="text-right px-3 py-2 w-24">Cant.</th>
                       <th className="text-right px-3 py-2 w-32">Precio</th>
+                      <th className="text-right px-3 py-2 w-24">Desc.</th>
                       <th className="text-right px-3 py-2 w-28">Subtotal</th>
                       <th className="w-10" />
                     </tr>
                   </thead>
                   <tbody>
-                    {lineas.map((l) => (
+                    {lineas.map((l, idx) => {
+                      const calc = calculoVenta.lineas[idx];
+                      return (
                       <tr key={l.key} className="border-t border-stone-100">
                         <td className="px-3 py-2">
                           <div className="font-medium text-stone-900">{l.nombre}</div>
@@ -1017,8 +1076,72 @@ export function VentasPage() {
                             }}
                           />
                         </td>
+                        <td className="px-2 py-2">
+                          <div className="flex flex-col gap-1 w-[4.5rem] ml-auto">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              placeholder="%"
+                              title="Descuento %"
+                              className="text-right h-8 text-xs"
+                              value={(l.descuentoPorcentaje ?? 0) > 0 ? l.descuentoPorcentaje : ''}
+                              onChange={(e) => {
+                                const pct = parseFloat(e.target.value) || 0;
+                                setLineas((prev) =>
+                                  prev.map((x) =>
+                                    x.key === l.key
+                                      ? {
+                                          ...x,
+                                          descuentoPorcentaje: pct,
+                                          descuentoMonto: pct > 0 ? 0 : x.descuentoMonto,
+                                        }
+                                      : x
+                                  )
+                                );
+                              }}
+                            />
+                            <Input
+                              type="number"
+                              min="0"
+                              step="1"
+                              placeholder="$"
+                              title="Descuento fijo"
+                              className="text-right h-8 text-xs"
+                              value={
+                                (l.descuentoPorcentaje ?? 0) > 0
+                                  ? ''
+                                  : (l.descuentoMonto ?? 0) > 0
+                                    ? l.descuentoMonto
+                                    : ''
+                              }
+                              onChange={(e) => {
+                                const monto = parseFloat(e.target.value) || 0;
+                                setLineas((prev) =>
+                                  prev.map((x) =>
+                                    x.key === l.key
+                                      ? { ...x, descuentoMonto: monto, descuentoPorcentaje: 0 }
+                                      : x
+                                  )
+                                );
+                              }}
+                            />
+                          </div>
+                        </td>
                         <td className="px-3 py-2 text-right font-medium">
-                          {fmt(l.cantidad * l.precioUnitario)}
+                          {calc &&
+                          ((calc.descuentoLineaMonto ?? 0) > 0 ||
+                            (calc.descuentoGlobalAsignado ?? 0) > 0) ? (
+                            <div>
+                              <div className="text-xs text-stone-400 line-through">
+                                {fmt(calc.subtotalBruto)}
+                              </div>
+                              <div>{fmt(calc.subtotalFinal)}</div>
+                            </div>
+                          ) : (
+                            fmt(calc?.subtotalFinal ?? l.cantidad * l.precioUnitario)
+                          )}
                         </td>
                         <td className="px-2 py-2">
                           <button
@@ -1029,7 +1152,8 @@ export function VentasPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1044,8 +1168,97 @@ export function VentasPage() {
               />
             </div>
 
+            {lineas.length > 0 && (
+              <div className="rounded-lg border border-stone-200 p-3 space-y-2">
+                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">
+                  Descuento global
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex rounded-lg border border-stone-200 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setDescuentoGlobalModo('porcentaje')}
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                        descuentoGlobalModo === 'porcentaje'
+                          ? 'bg-brand-700 text-white'
+                          : 'bg-white text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDescuentoGlobalModo('monto')}
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                        descuentoGlobalModo === 'monto'
+                          ? 'bg-brand-700 text-white'
+                          : 'bg-white text-stone-600 hover:bg-stone-50'
+                      }`}
+                    >
+                      $
+                    </button>
+                  </div>
+                  {descuentoGlobalModo === 'porcentaje' ? (
+                    <div className="w-28">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        className="text-right"
+                        value={descuentoGlobalPorcentaje > 0 ? descuentoGlobalPorcentaje : ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDescuentoGlobalPorcentaje(parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-32">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        className="text-right"
+                        value={descuentoGlobalMonto > 0 ? descuentoGlobalMonto : ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDescuentoGlobalMonto(parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                  )}
+                  {descuentoGlobalAplicado > 0 && (
+                    <span className="text-sm text-red-600 pb-1.5">
+                      −{fmt(descuentoGlobalAplicado)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2 border-t border-stone-100">
-              <div>
+              <div className="space-y-1">
+                {hayDescuentos && (
+                  <div className="space-y-0.5 text-sm text-stone-600 mb-2">
+                    <div className="flex justify-between gap-8">
+                      <span>Subtotal</span>
+                      <span>{fmt(subtotalBruto)}</span>
+                    </div>
+                    {descuentoLineasTotal > 0 && (
+                      <div className="flex justify-between gap-8 text-red-600">
+                        <span>Desc. líneas</span>
+                        <span>−{fmt(descuentoLineasTotal)}</span>
+                      </div>
+                    )}
+                    {descuentoGlobalAplicado > 0 && (
+                      <div className="flex justify-between gap-8 text-red-600">
+                        <span>Desc. global</span>
+                        <span>−{fmt(descuentoGlobalAplicado)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="text-2xl font-bold text-stone-900">{fmt(total)}</div>
                 {gananciaTotal !== 0 && (
                   <div
@@ -1273,16 +1486,55 @@ function VentaDetalleContent({ id }: { id: number }) {
         <p className="text-xs text-stone-500 mb-2">Cargó: {venta.usuarioNombre}</p>
       )}
       {venta.lineas.map((l: any) => (
-        <div key={l.id} className="flex justify-between py-1 border-b border-stone-50">
-          <span>
-            {l.productoNombre} × {l.cantidad}
-          </span>
-          <span className="font-medium">{fmt(l.subtotal)}</span>
+        <div key={l.id} className="flex justify-between gap-2 py-1 border-b border-stone-50">
+          <div className="min-w-0">
+            <div>
+              {l.productoNombre} × {l.cantidad}
+            </div>
+            {((l.descuentoMonto ?? 0) > 0 || (l.descuentoPorcentaje ?? 0) > 0) && (
+              <div className="text-xs text-stone-400">
+                Desc. línea
+                {(l.descuentoPorcentaje ?? 0) > 0
+                  ? ` ${l.descuentoPorcentaje}%`
+                  : ` −${fmt(l.descuentoMonto)}`}
+              </div>
+            )}
+            {(l.descuentoGlobalAsignado ?? 0) > 0 && (
+              <div className="text-xs text-stone-400">
+                Desc. global −{fmt(l.descuentoGlobalAsignado)}
+              </div>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            {(l.subtotalBruto ?? 0) > l.subtotal && (
+              <div className="text-xs text-stone-400 line-through">{fmt(l.subtotalBruto)}</div>
+            )}
+            <span className="font-medium">{fmt(l.subtotal)}</span>
+          </div>
         </div>
       ))}
-      <div className="flex justify-between pt-2 font-bold">
-        <span>Total</span>
-        <span>{fmt(venta.total)}</span>
+      <div className="space-y-0.5 pt-2 text-sm text-stone-600">
+        {(venta.subtotalBruto ?? 0) > venta.total && (
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span>{fmt(venta.subtotalBruto)}</span>
+          </div>
+        )}
+        {(venta.descuentoGlobalMonto ?? 0) > 0 && (
+          <div className="flex justify-between text-red-600">
+            <span>
+              Desc. global
+              {(venta.descuentoGlobalPorcentaje ?? 0) > 0
+                ? ` (${venta.descuentoGlobalPorcentaje}%)`
+                : ''}
+            </span>
+            <span>−{fmt(venta.descuentoGlobalMonto)}</span>
+          </div>
+        )}
+        <div className="flex justify-between font-bold text-stone-900 text-base pt-1">
+          <span>Total</span>
+          <span>{fmt(venta.total)}</span>
+        </div>
       </div>
     </div>
   );

@@ -111,12 +111,12 @@ export function CategoriasPage() {
         }}
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold font-outfit text-stone-900">Categorías y Subcategorías</h1>
           <p className="text-stone-500">Administra el árbol de categorías de tu tienda.</p>
         </div>
-        <Button onClick={() => openModal('CREATE_CAT')}>
+        <Button onClick={() => openModal('CREATE_CAT')} className="w-full sm:w-auto">
           <Plus size={20} className="mr-2" />
           Nueva Categoría
         </Button>
@@ -137,18 +137,18 @@ export function CategoriasPage() {
               return (
                 <div key={cat.id} className="flex flex-col">
                   {/* Fila Categoría */}
-                  <div className="flex items-center p-4 hover:bg-stone-50 transition-colors">
-                    <button onClick={() => toggleExpand(cat.id)} className="p-1 mr-2 text-stone-400 hover:text-stone-600">
+                  <div className="flex flex-wrap items-center gap-y-2 p-4 hover:bg-stone-50 transition-colors">
+                    <button onClick={() => toggleExpand(cat.id)} className="p-1 mr-2 text-stone-400 hover:text-stone-600 shrink-0">
                       {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </button>
-                    <Folder className="text-brand-600 mr-3" size={20} />
-                    <div className="flex-1">
+                    <Folder className="text-brand-600 mr-3 shrink-0" size={20} />
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-stone-900">{cat.nombre}</span>
+                        <span className="truncate font-semibold text-stone-900">{cat.nombre}</span>
                         {isMakor ? (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">Sincronizada (Makor)</span>
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">Sincronizada (Makor)</span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Manual</span>
+                          <span className="shrink-0 px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-medium">Manual</span>
                         )}
                       </div>
                       <div className="text-xs text-stone-500 mt-1">
@@ -156,7 +156,7 @@ export function CategoriasPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => openModal('CREATE_SUB', { categoriaId: cat.id })}>
                         <Plus size={16} className="mr-1" /> Sub
                       </Button>
@@ -184,22 +184,22 @@ export function CategoriasPage() {
                     const subCanDelete = !subIsMakor && !subHasProducts;
 
                     return (
-                      <div key={sub.id} className="flex items-center p-3 pl-14 bg-stone-50/50 border-t border-stone-50 hover:bg-stone-50 transition-colors">
-                        <FolderTree className="text-stone-400 mr-3" size={18} />
-                        <div className="flex-1">
+                      <div key={sub.id} className="flex flex-wrap items-center gap-y-2 p-3 pl-8 sm:pl-14 bg-stone-50/50 border-t border-stone-50 hover:bg-stone-50 transition-colors">
+                        <FolderTree className="text-stone-400 mr-3 shrink-0" size={18} />
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-stone-700">{sub.nombre}</span>
+                            <span className="truncate text-stone-700">{sub.nombre}</span>
                             {subIsMakor ? (
-                              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium">Makor</span>
+                              <span className="shrink-0 px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium">Makor</span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] font-medium">Manual</span>
+                              <span className="shrink-0 px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[10px] font-medium">Manual</span>
                             )}
                           </div>
                           <div className="text-xs text-stone-500">
                             {sub.count} productos
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="ml-auto flex shrink-0 items-center gap-2">
                           <Button variant="outline" size="sm" onClick={() => openModal('EDIT_SUB', sub)}>
                             <Edit2 size={14} />
                           </Button>

@@ -193,7 +193,7 @@ export function TagsPage() {
         </form>
 
         <div className="rounded-xl border border-stone-200 bg-white shadow-sm lg:col-span-2">
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-stone-100 text-left text-stone-500">
@@ -264,6 +264,59 @@ export function TagsPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Vista mobile: tarjetas */}
+          <div className="divide-y divide-stone-100 md:hidden">
+            {tags.length === 0 ? (
+              <div className="px-4 py-8 text-center text-stone-400">No hay tags creados</div>
+            ) : (
+              tags.map((tag) => (
+                <div key={tag.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                        style={{ backgroundColor: tag.colorHex || '#8B4513' }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-stone-900">{tag.nombre}</p>
+                        <p className="truncate text-xs text-stone-400">/{tag.slug}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(tag)}
+                        className="rounded p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTagAEliminar(tag)}
+                        className="rounded p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-600">
+                      {tag.productosCount} productos
+                    </span>
+                    <span className={tag.visibleEnCatalogo ? 'rounded-full bg-brand-50 px-2 py-0.5 text-brand-700' : 'rounded-full bg-stone-100 px-2 py-0.5 text-stone-500'}>
+                      {tag.visibleEnCatalogo ? 'En catálogo' : 'Oculto'}
+                    </span>
+                    {tag.activo ? (
+                      <span className="rounded-full bg-green-50 px-2 py-0.5 text-green-700">Activo</span>
+                    ) : (
+                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-500">Inactivo</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

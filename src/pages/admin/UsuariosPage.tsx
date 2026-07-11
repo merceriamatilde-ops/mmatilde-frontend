@@ -258,7 +258,8 @@ export function UsuariosPage() {
         </form>
 
         <div className="lg:col-span-2 space-y-4">
-          <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+          {/* Vista desktop: tabla */}
+          <div className="hidden overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm md:block">
             <table className="min-w-full divide-y divide-stone-200">
               <thead className="bg-stone-50">
                 <tr>
@@ -336,6 +337,70 @@ export function UsuariosPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Vista mobile: tarjetas */}
+          <div className="space-y-3 md:hidden">
+            {usuarios.map((u) => (
+              <div key={u.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-stone-900">
+                      {u.nombre}
+                      {isSuperAdmin(u.email) && (
+                        <span className="ml-2 text-xs font-medium text-amber-700">superadmin</span>
+                      )}
+                      {currentUser && isSameUser(u, currentUser) && (
+                        <span className="ml-2 text-xs text-stone-400">(vos)</span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-stone-500">{u.email}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(u)}
+                      className="rounded-md p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                      title="Editar"
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    {canDeleteUsuario(u, currentUser ?? undefined) && (
+                      <button
+                        type="button"
+                        onClick={() => setUsuarioAEliminar(u)}
+                        className="rounded-md p-2 text-stone-400 hover:bg-red-50 hover:text-red-600"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                      u.rol === 'ADMIN' ? 'bg-brand-100 text-brand-800' : 'bg-stone-100 text-stone-600'
+                    }`}
+                  >
+                    {u.rol}
+                  </span>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                      u.activo ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {u.activo ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {usuarios.length === 0 && (
+              <div className="rounded-xl border border-stone-200 bg-white px-4 py-8 text-center text-sm text-stone-500">
+                <Users className="mx-auto mb-2 h-8 w-8 text-stone-300" />
+                No hay usuarios
+              </div>
+            )}
           </div>
 
           {editing && (
