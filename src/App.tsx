@@ -17,6 +17,7 @@ function RouteTracker() {
 // Layouts
 import { CatalogoLayout } from './components/layout/CatalogoLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
+import { RequireAdmin } from './components/auth/RequireAdmin';
 
 // Pages - Public
 import { HomePage } from './pages/catalogo/HomePage';
@@ -40,6 +41,7 @@ import { TagsPage } from './pages/admin/TagsPage';
 import { VentasPage } from './pages/admin/VentasPage';
 import { EstadisticasPage } from './pages/admin/EstadisticasPage';
 import { IaPage } from './pages/admin/IaPage';
+import { UsuariosPage } from './pages/admin/UsuariosPage';
 
 // Pages - IA
 import { EstimadorIAPage } from './pages/ia/EstimadorIAPage';
@@ -74,15 +76,16 @@ function App() {
                 <Route path="/" element={<AdminLayout />}>
                   <Route index element={<DashboardPage />} />
                   <Route path="productos" element={<ProductosPage />} />
-                  <Route path="categorias" element={<AdminCategoriasPage />} />
-                  <Route path="precios" element={<PreciosPage />} />
                   <Route path="ventas" element={<VentasPage />} />
-                  <Route path="estadisticas" element={<EstadisticasPage />} />
-                  <Route path="colores" element={<ColoresPage />} />
-                  <Route path="tags" element={<TagsPage />} />
-                  <Route path="sync" element={<SyncPage />} />
-                  <Route path="ia" element={<IaPage />} />
-                  <Route path="configuracion" element={<ConfiguracionPage />} />
+                  <Route path="categorias" element={<RequireAdmin><AdminCategoriasPage /></RequireAdmin>} />
+                  <Route path="precios" element={<RequireAdmin><PreciosPage /></RequireAdmin>} />
+                  <Route path="estadisticas" element={<RequireAdmin><EstadisticasPage /></RequireAdmin>} />
+                  <Route path="colores" element={<RequireAdmin><ColoresPage /></RequireAdmin>} />
+                  <Route path="tags" element={<RequireAdmin><TagsPage /></RequireAdmin>} />
+                  <Route path="sync" element={<RequireAdmin><SyncPage /></RequireAdmin>} />
+                  <Route path="ia" element={<RequireAdmin><IaPage /></RequireAdmin>} />
+                  <Route path="configuracion" element={<RequireAdmin><ConfiguracionPage /></RequireAdmin>} />
+                  <Route path="usuarios" element={<RequireAdmin><UsuariosPage /></RequireAdmin>} />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
               </>

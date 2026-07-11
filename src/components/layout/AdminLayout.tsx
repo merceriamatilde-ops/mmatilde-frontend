@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Spinner } from '../ui/Spinner';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3, Users } from 'lucide-react';
+import { canAccessHref } from '../../lib/adminAccess';
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -33,7 +34,8 @@ export function AdminLayout() {
     { href: '/estadisticas', label: 'Estadísticas', icon: BarChart3 },
     { href: '/ia', label: 'Asistente IA', icon: Brain },
     { href: '/configuracion', label: 'Configuración', icon: Settings },
-  ];
+    { href: '/usuarios', label: 'Usuarios', icon: Users },
+  ].filter((item) => canAccessHref(item.href, user?.rol));
 
   return (
     <div className="admin-shell h-screen overflow-hidden bg-stone-100 flex flex-col md:flex-row relative">

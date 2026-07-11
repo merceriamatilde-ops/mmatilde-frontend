@@ -66,6 +66,7 @@ export function ProductosTable({
   onRefresh,
   onEdit,
   onEditPrecios,
+  readOnly = false,
 }: any) {
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
   const [selectedProductForPrices, setSelectedProductForPrices] = useState<any>(null);
@@ -216,11 +217,11 @@ export function ProductosTable({
               </TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead className="w-[140px]">Precio venta</TableHead>
-              <TableHead className="w-[88px] text-center">Más precios</TableHead>
+              {!readOnly && <TableHead className="w-[88px] text-center">Más precios</TableHead>}
               <TableHead className="w-[72px] text-center">Dest.</TableHead>
               <TableHead className="w-[72px] text-center">Visible</TableHead>
-              <TableHead className="w-[130px]">Últ. sync</TableHead>
-              <TableHead className="w-[72px] text-center"></TableHead>
+              {!readOnly && <TableHead className="w-[130px]">Últ. sync</TableHead>}
+              {!readOnly && <TableHead className="w-[72px] text-center"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -274,17 +275,26 @@ export function ProductosTable({
                       </span>
                     )}
                   </TableCell>
+                  {!readOnly && (
+                    <TableCell className="text-center">
+                      <button
+                        onClick={() => setSelectedProductForPrices(item)}
+                        className="inline-flex items-center justify-center rounded-md p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                        title="Ver más precios"
+                        aria-label="Ver más precios"
+                      >
+                        <Banknote size={18} strokeWidth={2.25} />
+                      </button>
+                    </TableCell>
+                  )}
                   <TableCell className="text-center">
-                    <button
-                      onClick={() => setSelectedProductForPrices(item)}
-                      className="inline-flex items-center justify-center rounded-md p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
-                      title="Ver más precios"
-                      aria-label="Ver más precios"
-                    >
-                      <Banknote size={18} strokeWidth={2.25} />
-                    </button>
-                  </TableCell>
-                  <TableCell className="text-center">
+                    {readOnly ? (
+                      item.destacado ? (
+                        <Star size={18} className="inline text-brand-600" fill="currentColor" />
+                      ) : (
+                        <StarOff size={18} className="inline text-stone-300" />
+                      )
+                    ) : (
                     <button
                       onClick={() => handleToggleDestacado(item.id, item.destacado)}
                       disabled={loadingIds.has(item.id)}
@@ -297,8 +307,16 @@ export function ProductosTable({
                     >
                       {item.destacado ? <Star size={18} fill="currentColor" /> : <StarOff size={18} />}
                     </button>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
+                    {readOnly ? (
+                      <span
+                        className={`text-xs font-medium ${item.activo ? 'text-emerald-700' : 'text-stone-400'}`}
+                      >
+                        {item.activo ? 'Sí' : 'No'}
+                      </span>
+                    ) : (
                     <div className="flex justify-center">
                       <Switch
                         checked={item.activo}
@@ -306,7 +324,10 @@ export function ProductosTable({
                         disabled={loadingIds.has(item.id)}
                       />
                     </div>
+                    )}
                   </TableCell>
+                  {!readOnly && (
+                  <>
                   <TableCell className="text-xs text-stone-500 whitespace-nowrap">
                     <div className="flex items-center gap-1">
                       {item.ultimaSync ? (
@@ -373,12 +394,14 @@ export function ProductosTable({
                       </button>
                     </div>
                   </TableCell>
+                  </>
+                  )}
                 </TableRow>
               );
             })}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-stone-500">
+                <TableCell colSpan={readOnly ? 6 : 9} className="h-24 text-center text-stone-500">
                   No se encontraron productos.
                 </TableCell>
               </TableRow>

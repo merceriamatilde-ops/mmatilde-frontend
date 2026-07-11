@@ -15,6 +15,8 @@ import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 import { Button } from '../../components/ui/Button';
 import { DEFAULT_TURNOS, turnosActivosOrdenados, type TurnoVentaItem } from '../../lib/turnosVenta';
+import { useAuth } from '../../hooks/useAuth';
+import { isAdmin } from '../../lib/adminAccess';
 
 const fmt = (n: number) =>
   n.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
@@ -101,6 +103,8 @@ function ResumenDiaCard({
 }
 
 export function DashboardPage() {
+  const { user } = useAuth();
+  const admin = isAdmin(user?.rol);
   const hoy = todayInput();
   const [loading, setLoading] = useState(true);
   const [catalogo, setCatalogo] = useState<any>(null);
@@ -113,15 +117,34 @@ export function DashboardPage() {
       try {
         const turnos: TurnoVentaItem[] = await api.getTurnosVentaActivos().catch(() => DEFAULT_TURNOS);
         const activos = turnosActivosOrdenados(turnos.length ? turnos : DEFAULT_TURNOS);
-        const [cat, resDia, resMes, ...resTurnos] = await Promise.all([
-          api.getDashboardStats(),
-          api.getEstadisticasResumen({ desde: hoy, hasta: hoy, comparar: 'false' }),
-          api.getEstadisticasResumen({ desde: monthStartInput(), hasta: hoy, comparar: 'true' }),
-          ...activos.map((t) => api.getVentaResumen(hoy, t.slug)),
-        ]);
-        setCatalogo(cat);
-        setDia(resDia);
-        setMes(resMes);
+        const resTurnos = await Promise.all(activos.map((t) => api.getVentaResumen(hoy, t.slug)));
+
+        if (admin) {
+          const [cat, resDia, resMes] = await Promise.all([
+            api.getDashboardStats(),
+            api.getEstadisticasResumen({ desde: hoy, hasta: hoy, comparar: 'false' }),
+            api.getEstadisticasResumen({ desde: monthStartInput(), hasta: hoy, comparar: 'true' }),
+          ]);
+          setCatalogo(cat);
+          setDia(resDia);
+          setMes(resMes);
+        } else {
+          const cat = await api.getDashboardStats();
+          setCatalogo(cat);
+          const facturacion = resTurnos.reduce((s, r) => s + (r.totalFacturado ?? 0), 0);
+          const ganancia = resTurnos.reduce((s, r) => s + (r.gananciaNetaEstimada ?? 0), 0);
+          const ventas = resTurnos.reduce((s, r) => s + (r.cantidadVentas ?? 0), 0);
+          setDia({
+            kpis: {
+              facturacion,
+              gananciaNeta: ganancia,
+              cantidadVentas: ventas,
+              ticketPromedio: ventas > 0 ? facturacion / ventas : 0,
+            },
+          });
+          setMes(null);
+        }
+
         setTurnosResumen(
           activos.map((t, i) => ({
             turno: t,
@@ -135,7 +158,7 @@ export function DashboardPage() {
       }
     };
     load();
-  }, [hoy]);
+  }, [hoy, admin]);
 
   if (loading) {
     return (
@@ -171,6 +194,7 @@ export function DashboardPage() {
           ticket={kpiDia?.ticketPromedio ?? 0}
           turnos={turnosResumen}
         />
+        {admin && (
         <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-stone-700 mb-4">Resumen del mes</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -192,9 +216,10 @@ export function DashboardPage() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
-      {mes?.kpisPeriodoAnterior && kpiMes && (
+      {admin && mes?.kpisPeriodoAnterior && kpiMes && (
         <div className="rounded-xl border border-brand-100 bg-brand-50/40 px-4 py-3 text-sm text-stone-700">
           Este mes vs período anterior: facturación{' '}
           <strong>{fmt(kpiMes.facturacion)}</strong>
@@ -217,6 +242,7 @@ export function DashboardPage() {
           <p className="text-xs text-stone-500 mt-0.5">Cargar y ver historial</p>
           <ArrowRight className="h-4 w-4 text-stone-400 mt-2 group-hover:text-brand-700" />
         </Link>
+        {admin && (
         <Link
           to="/estadisticas"
           className="rounded-xl border border-stone-200 bg-white p-4 hover:border-brand-600 hover:bg-brand-50/50 transition-colors group"
@@ -226,6 +252,8 @@ export function DashboardPage() {
           <p className="text-xs text-stone-500 mt-0.5">Gráficos y análisis</p>
           <ArrowRight className="h-4 w-4 text-stone-400 mt-2 group-hover:text-brand-700" />
         </Link>
+        )}
+        {admin && (
         <Link
           to="/sync"
           className="rounded-xl border border-stone-200 bg-white p-4 hover:border-brand-600 hover:bg-brand-50/50 transition-colors group"
@@ -235,6 +263,7 @@ export function DashboardPage() {
           <p className="text-xs text-stone-500 mt-0.5">Actualizar productos</p>
           <ArrowRight className="h-4 w-4 text-stone-400 mt-2 group-hover:text-brand-700" />
         </Link>
+        )}
         <Link
           to="/productos"
           className="rounded-xl border border-stone-200 bg-white p-4 hover:border-brand-600 hover:bg-brand-50/50 transition-colors group"

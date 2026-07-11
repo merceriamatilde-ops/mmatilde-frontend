@@ -176,6 +176,10 @@ export const api = {
   },
   buscarProductosVenta: (q: string, limit = 8) =>
     apiFetch<any[]>(`/ventas/productos-buscar?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getVentaCarrito: () => apiFetch<{ updatedAt?: string | null; payload?: any | null }>('/ventas/carrito'),
+  saveVentaCarrito: (payload: any) =>
+    apiFetch('/ventas/carrito', { method: 'PUT', body: JSON.stringify({ payload }) }),
+  clearVentaCarrito: () => apiFetch('/ventas/carrito', { method: 'DELETE' }),
   getProductoPrecioVenta: (id: number) => apiFetch<any>(`/ventas/producto/${id}/precio`),
   getVenta: (id: number) => apiFetch<any>(`/ventas/${id}`),
   getVentaResumen: (fecha: string, turno: string) =>
@@ -211,4 +215,22 @@ export const api = {
     const query = new URLSearchParams(params);
     return apiFetch<any>(`/estadisticas/resumen?${query.toString()}`);
   },
+
+  // Usuarios (solo ADMIN)
+  getUsuarios: () => apiFetch<any[]>('/usuarios'),
+  createUsuario: (data: {
+    email: string;
+    nombre: string;
+    password: string;
+    rol: string;
+  }) => apiFetch<any>('/usuarios', { method: 'POST', body: JSON.stringify(data) }),
+  updateUsuario: (id: string, data: {
+    email: string;
+    nombre: string;
+    rol: string;
+    activo: boolean;
+  }) => apiFetch<any>(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  setUsuarioPassword: (id: string, password: string) =>
+    apiFetch(`/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
+  deleteUsuario: (id: string) => apiFetch(`/usuarios/${id}`, { method: 'DELETE' }),
 };

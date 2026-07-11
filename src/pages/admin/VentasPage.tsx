@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Plus, Trash2, ShoppingCart, History, X, Pencil, BarChart3, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../api/client';
+import { useAuth } from '../../hooks/useAuth';
+import { isAdmin } from '../../lib/adminAccess';
 import { Button } from '../../components/ui/Button';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { Input } from '../../components/ui/Input';
@@ -68,6 +70,7 @@ type ProductoBusqueda = {
   id: number;
   nombre: string;
   codigoMakor?: string;
+  activo?: boolean;
   precioVenta?: number;
   unidadVenta?: string;
   gananciaNetaEstimada?: number;
@@ -241,6 +244,8 @@ const SORT_OPTIONS: { value: SortField; label: string }[] = [
 ];
 
 export function VentasPage() {
+  const { user } = useAuth();
+  const canDeleteVenta = isAdmin(user?.rol);
   const [tab, setTab] = useState<'nueva' | 'historial'>('nueva');
   const [mediosPago, setMediosPago] = useState<MedioPagoItem[]>(FALLBACK_MEDIOS);
   const [turnosVenta, setTurnosVenta] = useState<TurnoVentaItem[]>(DEFAULT_TURNOS);
@@ -274,6 +279,8 @@ export function VentasPage() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [cargandoEdicion, setCargandoEdicion] = useState(false);
   const [ventaAEliminar, setVentaAEliminar] = useState<any | null>(null);
+  const carritoHydratingRef = useRef(true);
+  const carritoReadyRef = useRef(false);
 
   const defaultMedioSlug = useMemo(() => {
     const fromApi = mediosPago.find((m) => m.esDefault)?.slug ?? mediosPago[0]?.slug;
@@ -389,6 +396,54 @@ export function VentasPage() {
     return () => clearTimeout(t);
   }, [query]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await api.getVentaCarrito();
+        if (cancelled) return;
+        const payload = saved?.payload;
+        if (payload?.lineas?.length) {
+          setLineas(payload.lineas);
+          if (payload.notas) setNotas(payload.notas);
+          if (payload.medioPagoSlug) setMedioPagoSlug(payload.medioPagoSlug);
+          if (payload.turno) setTurno(payload.turno);
+          if (typeof payload.turnoManual === 'boolean') setTurnoManual(payload.turnoManual);
+        }
+      } catch {
+        /* sin carrito previo */
+      } finally {
+        carritoHydratingRef.current = false;
+        carritoReadyRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (carritoHydratingRef.current || !carritoReadyRef.current || editandoId) return;
+
+    const timer = window.setTimeout(() => {
+      if (lineas.length === 0) {
+        api.clearVentaCarrito().catch(() => {});
+        return;
+      }
+      api
+        .saveVentaCarrito({
+          lineas,
+          notas,
+          medioPagoSlug,
+          turno,
+          turnoManual,
+        })
+        .catch(() => {});
+    }, 700);
+
+    return () => window.clearTimeout(timer);
+  }, [lineas, notas, medioPagoSlug, turno, turnoManual, editandoId]);
+
   const resetForm = () => {
     setFecha(todayInput());
     const t = nowTimeInput();
@@ -401,6 +456,7 @@ export function VentasPage() {
     setQuery('');
     setEditandoId(null);
     setTab('nueva');
+    api.clearVentaCarrito().catch(() => {});
   };
 
   const agregarProducto = async (
@@ -775,9 +831,20 @@ export function VentasPage() {
                       key={p.id}
                       type="button"
                       onClick={() => seleccionarProducto(p)}
-                      className="w-full text-left px-4 py-3 transition-colors hover:bg-brand-50/60 border-b border-stone-100 last:border-0"
+                      className={`w-full text-left px-4 py-3 transition-colors border-b border-stone-100 last:border-0 ${
+                        p.activo === false
+                          ? 'hover:bg-amber-50/70'
+                          : 'hover:bg-brand-50/60'
+                      }`}
                     >
-                      <div className="font-medium text-stone-900 text-sm">{p.nombre}</div>
+                      <div className="flex items-start gap-2">
+                        <div className="font-medium text-stone-900 text-sm flex-1 min-w-0">{p.nombre}</div>
+                        {p.activo === false && (
+                          <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                            No visible
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-stone-500 flex justify-between mt-0.5">
                         <span>{p.codigoMakor}</span>
                         <span>{p.precioVenta ? fmt(p.precioVenta) : 'Sin precio'}</span>
@@ -1097,6 +1164,9 @@ export function VentasPage() {
                     </div>
                     <div className="text-sm text-stone-500 mt-0.5">
                       {v.cantidadLineas} ítem{v.cantidadLineas !== 1 ? 's' : ''}
+                      {v.usuarioNombre && (
+                        <span className="text-stone-400"> · Cargó: {v.usuarioNombre}</span>
+                      )}
                       {v.notas && ` · ${v.notas}`}
                     </div>
                   </div>
@@ -1117,12 +1187,14 @@ export function VentasPage() {
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
+                    {canDeleteVenta && (
                     <button
                       onClick={() => setVentaAEliminar(v)}
                       className="p-2 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-md"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1157,6 +1229,9 @@ function VentaDetalleContent({ id }: { id: number }) {
 
   return (
     <div className="space-y-2 text-sm">
+      {venta.usuarioNombre && (
+        <p className="text-xs text-stone-500 mb-2">Cargó: {venta.usuarioNombre}</p>
+      )}
       {venta.lineas.map((l: any) => (
         <div key={l.id} className="flex justify-between py-1 border-b border-stone-50">
           <span>

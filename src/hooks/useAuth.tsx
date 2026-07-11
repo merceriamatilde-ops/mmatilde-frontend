@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { api } from '../api/client';
 
 type User = {
+  id?: string;
   email: string;
   nombre: string;
   rol: string;
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (data: any) => {
     const res: any = await api.login(data);
-    const userData = { email: res.email, nombre: res.nombre, rol: res.rol };
+    const userData = { id: res.id, email: res.email, nombre: res.nombre, rol: res.rol };
     localStorage.setItem('mmatilde_token', res.token);
     localStorage.setItem('mmatilde_user', JSON.stringify(userData));
     setUser(userData);

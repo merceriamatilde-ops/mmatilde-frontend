@@ -8,8 +8,12 @@ import { Select } from '../../components/ui/Select';
 import { Search, Plus } from 'lucide-react';
 import { Spinner } from '../../components/ui/Spinner';
 import { normalizeSearchQuery } from '../../lib/utils';
+import { useAuth } from '../../hooks/useAuth';
+import { isAdmin } from '../../lib/adminAccess';
 
 export function ProductosPage() {
+  const { user } = useAuth();
+  const canEdit = isAdmin(user?.rol);
   const [data, setData] = useState<any>({ items: [], total: 0, page: 1, totalPages: 1 });
   const [loading, setLoading] = useState(true);
   const [categorias, setCategorias] = useState<any[]>([]);
@@ -63,9 +67,13 @@ export function ProductosPage() {
   }, [filters]);
 
   useEffect(() => {
-    api.getCategoriasAdmin().then(res => setCategorias(res)).catch(console.error);
-    api.getTags().then(res => setTags(res)).catch(console.error);
-  }, []);
+    if (canEdit) {
+      api.getCategoriasAdmin().then((res) => setCategorias(res)).catch(console.error);
+    } else {
+      api.getAllCategorias().then((res) => setCategorias(res)).catch(console.error);
+    }
+    api.getTags().then((res) => setTags(res)).catch(console.error);
+  }, [canEdit]);
 
   useEffect(() => {
     loadData();
@@ -101,12 +109,16 @@ export function ProductosPage() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight font-outfit">Productos</h1>
-          <p className="text-stone-500 mt-1">Gestioná el catálogo, precios y visibilidad.</p>
+          <p className="text-stone-500 mt-1">
+            {canEdit ? 'Gestioná el catálogo, precios y visibilidad.' : 'Consultá el catálogo de productos.'}
+          </p>
         </div>
-        <Button onClick={handleNewProduct} className="gap-2">
-          <Plus size={18} />
-          Nuevo Producto
-        </Button>
+        {canEdit && (
+          <Button onClick={handleNewProduct} className="gap-2">
+            <Plus size={18} />
+            Nuevo Producto
+          </Button>
+        )}
       </div>
 
       <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
@@ -275,12 +287,13 @@ export function ProductosPage() {
           totalPages={data.totalPages}
           onPageChange={(p: number) => setFilters(prev => ({ ...prev, page: p }))}
           onRefresh={loadData}
-          onEdit={handleEditProduct}
-          onEditPrecios={(id: number) => handleEditProduct(id, { scrollToPrecios: true })}
+          readOnly={!canEdit}
+          onEdit={canEdit ? handleEditProduct : undefined}
+          onEditPrecios={canEdit ? (id: number) => handleEditProduct(id, { scrollToPrecios: true }) : undefined}
         />
       </div>
 
-      {modalOpen && (
+      {canEdit && modalOpen && (
         <ProductoModal 
           categorias={categorias}
           product={editingProduct}
