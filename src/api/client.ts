@@ -218,6 +218,15 @@ export const api = {
     return apiFetch<any>(`/estadisticas/resumen?${query.toString()}`);
   },
 
+  getEstadisticasUsuariosFiltro: () => apiFetch<any[]>('/estadisticas/usuarios-filtro'),
+
+  // Permisos BO
+  getPermisosModulos: () => apiFetch<{ modulos: Record<string, { habilitado: boolean; roles: string[] }> }>('/permisos-modulos'),
+  getPermisosModulosDefiniciones: () =>
+    apiFetch<{ key: string; label: string; bloqueado: boolean }[]>('/permisos-modulos/definiciones'),
+  updatePermisosModulos: (data: { modulos: Record<string, { habilitado: boolean; roles: string[] }> }) =>
+    apiFetch('/permisos-modulos', { method: 'PUT', body: JSON.stringify(data) }),
+
   // Usuarios (solo ADMIN)
   getUsuarios: () => apiFetch<any[]>('/usuarios'),
   getUsuariosFiltroVentas: () => apiFetch<any[]>('/usuarios/filtro-ventas'),

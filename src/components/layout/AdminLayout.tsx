@@ -3,10 +3,12 @@ import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Spinner } from '../ui/Spinner';
 import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3, Users } from 'lucide-react';
-import { canAccessHref, isAdmin } from '../../lib/adminAccess';
+import { canAccessHref, isAdmin, MODULOS_NAV } from '../../lib/adminAccess';
+import { usePermisosModulos } from '../../hooks/usePermisosModulos';
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { permisos } = usePermisosModulos();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -22,20 +24,24 @@ export function AdminLayout() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/ventas', label: 'Ventas', icon: ShoppingCart },
-    { href: '/productos', label: 'Productos', icon: Package },
-    { href: '/categorias', label: 'Categorías', icon: FolderTree },
-    { href: '/tags', label: 'Tags', icon: Bookmark },
-    { href: '/colores', label: 'Colores', icon: Palette },
-    { href: '/precios', label: 'Precios', icon: Tags },
-    { href: '/sync', label: 'Sincronización Makor', icon: RefreshCw },
-    { href: '/estadisticas', label: 'Estadísticas', icon: BarChart3 },
-    { href: '/ia', label: 'Asistente IA', icon: Brain },
-    { href: '/configuracion', label: 'Configuración', icon: Settings },
-    { href: '/usuarios', label: 'Usuarios', icon: Users },
-  ].filter((item) => canAccessHref(item.href, user?.rol));
+  const navItems = MODULOS_NAV.map((m) => ({
+    href: m.href,
+    label: m.label,
+    icon: {
+      dashboard: LayoutDashboard,
+      ventas: ShoppingCart,
+      productos: Package,
+      categorias: FolderTree,
+      tags: Bookmark,
+      colores: Palette,
+      precios: Tags,
+      sync: RefreshCw,
+      estadisticas: BarChart3,
+      ia: Brain,
+      configuracion: Settings,
+      usuarios: Users,
+    }[m.key],
+  })).filter((item) => canAccessHref(item.href, user?.rol, permisos));
 
   return (
     <div className="admin-shell h-screen overflow-hidden bg-stone-100 flex flex-col md:flex-row relative">

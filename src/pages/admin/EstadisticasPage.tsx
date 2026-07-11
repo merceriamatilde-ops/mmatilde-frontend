@@ -134,7 +134,7 @@ export function EstadisticasPage() {
     api.getTurnosVentaActivos()
       .then((data) => data?.length && setTurnos(data))
       .catch(() => {});
-    api.getUsuariosFiltroVentas()
+    api.getEstadisticasUsuariosFiltro()
       .then((data) => setUsuariosFiltro(data ?? []))
       .catch(() => {});
   }, []);

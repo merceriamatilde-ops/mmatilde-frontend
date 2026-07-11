@@ -5,6 +5,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import ReactGA from 'react-ga4';
 
 import { AuthProvider } from './hooks/useAuth';
+import { PermisosProvider } from './hooks/usePermisosModulos';
 
 function RouteTracker() {
   const location = useLocation();
@@ -17,7 +18,7 @@ function RouteTracker() {
 // Layouts
 import { CatalogoLayout } from './components/layout/CatalogoLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
-import { RequireAdmin } from './components/auth/RequireAdmin';
+import { RequireModule } from './components/auth/RequireModule';
 
 // Pages - Public
 import { HomePage } from './pages/catalogo/HomePage';
@@ -61,6 +62,7 @@ function App() {
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
+          <PermisosProvider>
           <RouteTracker />
           <Routes>
             {isIaSubdomain ? (
@@ -74,18 +76,18 @@ function App() {
               <>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={<AdminLayout />}>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="productos" element={<ProductosPage />} />
-                  <Route path="ventas" element={<VentasPage />} />
-                  <Route path="categorias" element={<RequireAdmin><AdminCategoriasPage /></RequireAdmin>} />
-                  <Route path="precios" element={<RequireAdmin><PreciosPage /></RequireAdmin>} />
-                  <Route path="estadisticas" element={<RequireAdmin><EstadisticasPage /></RequireAdmin>} />
-                  <Route path="colores" element={<RequireAdmin><ColoresPage /></RequireAdmin>} />
-                  <Route path="tags" element={<RequireAdmin><TagsPage /></RequireAdmin>} />
-                  <Route path="sync" element={<RequireAdmin><SyncPage /></RequireAdmin>} />
-                  <Route path="ia" element={<RequireAdmin><IaPage /></RequireAdmin>} />
-                  <Route path="configuracion" element={<RequireAdmin><ConfiguracionPage /></RequireAdmin>} />
-                  <Route path="usuarios" element={<RequireAdmin><UsuariosPage /></RequireAdmin>} />
+                  <Route index element={<RequireModule modulo="dashboard"><DashboardPage /></RequireModule>} />
+                  <Route path="productos" element={<RequireModule modulo="productos"><ProductosPage /></RequireModule>} />
+                  <Route path="ventas" element={<RequireModule modulo="ventas"><VentasPage /></RequireModule>} />
+                  <Route path="categorias" element={<RequireModule modulo="categorias"><AdminCategoriasPage /></RequireModule>} />
+                  <Route path="precios" element={<RequireModule modulo="precios"><PreciosPage /></RequireModule>} />
+                  <Route path="estadisticas" element={<RequireModule modulo="estadisticas"><EstadisticasPage /></RequireModule>} />
+                  <Route path="colores" element={<RequireModule modulo="colores"><ColoresPage /></RequireModule>} />
+                  <Route path="tags" element={<RequireModule modulo="tags"><TagsPage /></RequireModule>} />
+                  <Route path="sync" element={<RequireModule modulo="sync"><SyncPage /></RequireModule>} />
+                  <Route path="ia" element={<RequireModule modulo="ia"><IaPage /></RequireModule>} />
+                  <Route path="configuracion" element={<RequireModule modulo="configuracion"><ConfiguracionPage /></RequireModule>} />
+                  <Route path="usuarios" element={<RequireModule modulo="usuarios"><UsuariosPage /></RequireModule>} />
                 </Route>
                 <Route path="*" element={<NotFoundPage />} />
               </>
@@ -105,6 +107,7 @@ function App() {
               </>
             )}
           </Routes>
+          </PermisosProvider>
         </AuthProvider>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
