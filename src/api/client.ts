@@ -176,6 +176,7 @@ export const api = {
   },
   buscarProductosVenta: (q: string, limit = 8) =>
     apiFetch<any[]>(`/ventas/productos-buscar?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getProductoVentaLibre: () => apiFetch<any>('/ventas/producto-venta-libre'),
   getVentaCarrito: () => apiFetch<{ updatedAt?: string | null; payload?: any | null }>('/ventas/carrito'),
   saveVentaCarrito: (payload: any) =>
     apiFetch('/ventas/carrito', { method: 'PUT', body: JSON.stringify({ payload }) }),

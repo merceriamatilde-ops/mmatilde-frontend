@@ -48,6 +48,8 @@ type LineaDraft = {
   gananciaUnitaria?: number;
   descuentoPorcentaje?: number;
   descuentoMonto?: number;
+  esVentaLibre?: boolean;
+  notaLinea?: string;
   modoOrigenEconomico?: string;
   costoReferencia?: number | null;
   comisionPorcentaje?: number | null;
@@ -77,6 +79,7 @@ type ProductoBusqueda = {
   precioVenta?: number;
   unidadVenta?: string;
   gananciaNetaEstimada?: number;
+  esVentaLibre?: boolean;
   modoOrigenEconomico?: string;
   costoReferencia?: number | null;
   ivaPorcentaje?: number | null;
@@ -129,6 +132,7 @@ async function hydrateLineaFromVenta(l: {
   gananciaNetaEstimada?: number;
   descuentoPorcentaje?: number;
   descuentoMonto?: number;
+  notaLinea?: string;
 }): Promise<LineaDraft> {
   const detail = await api.getProductoPrecioVenta(l.productoId);
   const presentaciones: ProductoPresentacionBusqueda[] = detail.presentaciones ?? [];
@@ -159,6 +163,8 @@ async function hydrateLineaFromVenta(l: {
     descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
     descuentoMonto:
       (l.descuentoPorcentaje ?? 0) > 0 ? 0 : (l.descuentoMonto ?? 0),
+    esVentaLibre: detail.esVentaLibre,
+    notaLinea: l.notaLinea ?? undefined,
     modoOrigenEconomico: detail.modoOrigenEconomico,
     costoReferencia: pres?.costoReferencia ?? detail.costoReferencia,
     comisionPorcentaje: null,
@@ -168,7 +174,7 @@ async function hydrateLineaFromVenta(l: {
 
   return {
     ...draft,
-    gananciaUnitaria: calcGananciaLinea(draft, draft.precioUnitario),
+    gananciaUnitaria: draft.esVentaLibre ? 0 : calcGananciaLinea(draft, draft.precioUnitario),
   };
 }
 
@@ -177,7 +183,7 @@ function lineaConPresentacion(
   pres: ProductoPresentacionBusqueda | null,
   p: ProductoBusqueda
 ): LineaDraft {
-  const precio = pres?.precioVenta ?? p.precioVenta ?? 0;
+  const precio = p.esVentaLibre ? 0 : (pres?.precioVenta ?? p.precioVenta ?? 0);
   const draft: LineaDraft = {
     ...base,
     presentacionId: pres?.id ?? null,
@@ -186,20 +192,22 @@ function lineaConPresentacion(
     presentacionesCargadas: (p.presentaciones?.length ?? 0) > 0,
     unidadVenta: pres?.nombre ?? p.unidadVenta,
     precioUnitario: precio,
-    gananciaUnitaria: pres?.gananciaNetaEstimada ?? p.gananciaNetaEstimada,
+    gananciaUnitaria: p.esVentaLibre ? 0 : (pres?.gananciaNetaEstimada ?? p.gananciaNetaEstimada),
     modoOrigenEconomico: p.modoOrigenEconomico,
     costoReferencia: pres?.costoReferencia ?? p.costoReferencia,
     comisionPorcentaje: null,
     costoMateriales: p.costoMateriales,
     manoObra: p.manoObra,
+    esVentaLibre: p.esVentaLibre,
   };
   return {
     ...draft,
-    gananciaUnitaria: calcGananciaLinea(draft, precio),
+    gananciaUnitaria: draft.esVentaLibre ? 0 : calcGananciaLinea(draft, precio),
   };
 }
 
 function calcGananciaLinea(l: LineaDraft, precio: number): number {
+  if (l.esVentaLibre) return 0;
   const modo = (l.modoOrigenEconomico || 'REVENTA') as ModoOrigenEconomico;
 
   if ((modo === 'REVENTA' || modo === 'ELABORACION_PROPIA') && l.costoReferencia != null) {
@@ -524,23 +532,26 @@ export function VentasPage() {
     const lineKey = `${full.id}-${varianteId ?? 'base'}-${presentacionId ?? 'default'}`;
 
     setLineas((prev) => {
-      const existing = prev.find(
-        (l) =>
-          l.productoId === full.id &&
-          (l.varianteId ?? null) === varianteId &&
-          (l.presentacionId ?? null) === presentacionId
-      );
-      if (existing) {
-        return prev.map((l) =>
-          l.productoId === full.id &&
-          (l.varianteId ?? null) === varianteId &&
-          (l.presentacionId ?? null) === presentacionId
-            ? { ...l, cantidad: l.cantidad + 1 }
-            : l
+      if (!full.esVentaLibre) {
+        const existing = prev.find(
+          (l) =>
+            l.productoId === full.id &&
+            (l.varianteId ?? null) === varianteId &&
+            (l.presentacionId ?? null) === presentacionId
         );
+        if (existing) {
+          return prev.map((l) =>
+            l.productoId === full.id &&
+            (l.varianteId ?? null) === varianteId &&
+            (l.presentacionId ?? null) === presentacionId
+              ? { ...l, cantidad: l.cantidad + 1 }
+              : l
+          );
+        }
       }
-      const precio = pres?.precioVenta ?? full.precioVenta;
-      if (!precio) {
+
+      const precio = full.esVentaLibre ? 0 : (pres?.precioVenta ?? full.precioVenta);
+      if (!precio && !full.esVentaLibre) {
         toast.error('Este producto no tiene precio de venta cargado');
         return prev;
       }
@@ -566,6 +577,10 @@ export function VentasPage() {
   };
 
   const seleccionarProducto = (p: ProductoBusqueda) => {
+    if (p.esVentaLibre) {
+      void agregarProducto(p);
+      return;
+    }
     const variantes = (p.variantes ?? []).filter((v) => v.id);
     if (variantes.length > 1) {
       setProductoPendiente(p);
@@ -573,6 +588,29 @@ export function VentasPage() {
       return;
     }
     void agregarProducto(p, variantes.length === 1 ? variantes[0] : null);
+  };
+
+  const agregarVentaLibre = async () => {
+    try {
+      const p = await api.getProductoVentaLibre();
+      if (!p) {
+        toast.error('Producto "Varios" no configurado');
+        return;
+      }
+      void agregarProducto({
+        id: p.id,
+        nombre: p.nombre,
+        codigoMakor: p.codigoMakor,
+        activo: p.activo,
+        esVentaLibre: true,
+        precioVenta: undefined,
+        presentaciones: p.presentaciones,
+      });
+      setQuery('');
+      setShowResults(false);
+    } catch {
+      toast.error('No se pudo cargar venta libre');
+    }
   };
 
   useEffect(() => {
@@ -618,6 +656,16 @@ export function VentasPage() {
       toast.error('Seleccioná un medio de pago');
       return;
     }
+    const variosSinNota = lineas.filter((l) => l.esVentaLibre && !l.notaLinea?.trim());
+    if (variosSinNota.length > 0) {
+      toast.error('Completá qué se vendió en las líneas "Varios"');
+      return;
+    }
+    const variosSinPrecio = lineas.filter((l) => l.esVentaLibre && l.precioUnitario <= 0);
+    if (variosSinPrecio.length > 0) {
+      toast.error('Indicá el precio en las líneas "Varios"');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -635,6 +683,7 @@ export function VentasPage() {
           precioUnitario: l.precioUnitario,
           descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
           descuentoMonto: (l.descuentoPorcentaje ?? 0) > 0 ? null : (l.descuentoMonto ?? 0) || null,
+          notaLinea: l.esVentaLibre ? l.notaLinea?.trim() || null : null,
         })),
       };
       if (editandoId) {
@@ -740,6 +789,8 @@ export function VentasPage() {
               descuentoPorcentaje: l.descuentoPorcentaje ?? 0,
               descuentoMonto:
                 (l.descuentoPorcentaje ?? 0) > 0 ? 0 : (l.descuentoMonto ?? 0),
+              esVentaLibre: true,
+              notaLinea: l.notaLinea ?? undefined,
             } satisfies LineaDraft;
           }
         })
@@ -894,14 +945,27 @@ export function VentasPage() {
             </div>
 
             <div ref={searchRef} className="relative z-30">
-              <label className="admin-field-label">Buscar producto</label>
-              <InputWithIcon
-                icon={Search}
-                placeholder="Nombre o código Makor (mín. 2 letras)..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => resultados.length > 0 && setShowResults(true)}
-              />
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                <div className="flex-1 min-w-0">
+                  <label className="admin-field-label">Buscar producto</label>
+                  <InputWithIcon
+                    icon={Search}
+                    placeholder="Nombre o código Makor (mín. 2 letras)..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => resultados.length > 0 && setShowResults(true)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => void agregarVentaLibre()}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Venta libre
+                </Button>
+              </div>
               {showResults && resultados.length > 0 && (
                 <div className="absolute left-0 right-0 z-50 mt-1 rounded-lg border border-stone-200 bg-white shadow-xl max-h-[16.5rem] overflow-y-auto overscroll-contain">
                   {resultados.map((p) => (
@@ -917,7 +981,12 @@ export function VentasPage() {
                     >
                       <div className="flex items-start gap-2">
                         <div className="font-medium text-stone-900 text-sm flex-1 min-w-0">{p.nombre}</div>
-                        {p.activo === false && (
+                        {p.esVentaLibre && (
+                          <span className="shrink-0 rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stone-600">
+                            Sin catálogo
+                          </span>
+                        )}
+                        {p.activo === false && !p.esVentaLibre && (
                           <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                             No visible
                           </span>
@@ -925,7 +994,7 @@ export function VentasPage() {
                       </div>
                       <div className="text-xs text-stone-500 flex justify-between mt-0.5">
                         <span>{p.codigoMakor}</span>
-                        <span>{p.precioVenta ? fmt(p.precioVenta) : 'Sin precio'}</span>
+                        <span>{p.precioVenta ? fmt(p.precioVenta) : p.esVentaLibre ? 'Precio a mano' : 'Sin precio'}</span>
                       </div>
                     </button>
                   ))}
@@ -984,6 +1053,20 @@ export function VentasPage() {
                       <tr key={l.key} className="border-t border-stone-100">
                         <td className="px-3 py-2">
                           <div className="font-medium text-stone-900">{l.nombre}</div>
+                          {l.esVentaLibre && (
+                            <Input
+                              placeholder="¿Qué se vendió?"
+                              value={l.notaLinea ?? ''}
+                              onChange={(e) =>
+                                setLineas((prev) =>
+                                  prev.map((x) =>
+                                    x.key === l.key ? { ...x, notaLinea: e.target.value } : x
+                                  )
+                                )
+                              }
+                              className="mt-1.5 h-8 text-xs"
+                            />
+                          )}
                           {l.varianteLabel && (
                             <div className="text-xs text-brand-700">{l.varianteLabel}</div>
                           )}
@@ -1491,6 +1574,9 @@ function VentaDetalleContent({ id }: { id: number }) {
             <div>
               {l.productoNombre} × {l.cantidad}
             </div>
+            {l.notaLinea && (
+              <div className="text-xs text-stone-500 italic mt-0.5">{l.notaLinea}</div>
+            )}
             {((l.descuentoMonto ?? 0) > 0 || (l.descuentoPorcentaje ?? 0) > 0) && (
               <div className="text-xs text-stone-400">
                 Desc. línea

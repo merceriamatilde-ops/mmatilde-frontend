@@ -361,6 +361,13 @@ export function EstadisticasPage() {
               value={kpis.itemsVendidos.toLocaleString('es-AR', { maximumFractionDigits: 1 })}
               delta={<Delta actual={kpis.itemsVendidos} anterior={prev?.itemsVendidos} />}
             />
+            {(kpis.ventasSinCatalogoFacturacion ?? 0) > 0 && (
+              <KpiCard
+                label="Sin catálogo"
+                value={fmt(kpis.ventasSinCatalogoFacturacion)}
+                sub={`${kpis.ventasSinCatalogoItems?.toLocaleString('es-AR', { maximumFractionDigits: 1 }) ?? 0} ítems · no cuenta en top productos`}
+              />
+            )}
           </div>
 
           {kpis.cantidadVentas === 0 ? (
