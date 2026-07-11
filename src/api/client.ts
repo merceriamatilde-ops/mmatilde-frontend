@@ -182,8 +182,10 @@ export const api = {
   clearVentaCarrito: () => apiFetch('/ventas/carrito', { method: 'DELETE' }),
   getProductoPrecioVenta: (id: number) => apiFetch<any>(`/ventas/producto/${id}/precio`),
   getVenta: (id: number) => apiFetch<any>(`/ventas/${id}`),
-  getVentaResumen: (fecha: string, turno: string) =>
-    apiFetch<any>(`/ventas/resumen?fecha=${fecha}&turno=${turno}`),
+  getVentaResumen: (fecha: string, turno: string, extra?: Record<string, string>) => {
+    const query = new URLSearchParams({ fecha, turno, ...extra });
+    return apiFetch<any>(`/ventas/resumen?${query.toString()}`);
+  },
   createVenta: (data: any) =>
     apiFetch<any>('/ventas', { method: 'POST', body: JSON.stringify(data) }),
   updateVenta: (id: number, data: any) =>
@@ -218,6 +220,7 @@ export const api = {
 
   // Usuarios (solo ADMIN)
   getUsuarios: () => apiFetch<any[]>('/usuarios'),
+  getUsuariosFiltroVentas: () => apiFetch<any[]>('/usuarios/filtro-ventas'),
   createUsuario: (data: {
     email: string;
     nombre: string;

@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Spinner } from '../ui/Spinner';
 import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3, Users } from 'lucide-react';
-import { canAccessHref } from '../../lib/adminAccess';
+import { canAccessHref, isAdmin } from '../../lib/adminAccess';
 
 export function AdminLayout() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -99,6 +99,17 @@ export function AdminLayout() {
             <div className="ml-3 min-w-0">
               <p className="text-sm font-medium text-white truncate">{user?.nombre}</p>
               <p className="text-xs text-stone-500 truncate">{user?.email}</p>
+              {user?.rol && (
+                <span
+                  className={`mt-1 inline-flex rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isAdmin(user.rol)
+                      ? 'bg-brand-900/60 text-brand-300'
+                      : 'bg-stone-800 text-stone-400'
+                  }`}
+                >
+                  {user.rol}
+                </span>
+              )}
             </div>
           </div>
           <button

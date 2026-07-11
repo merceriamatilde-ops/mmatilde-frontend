@@ -243,9 +243,19 @@ const SORT_OPTIONS: { value: SortField; label: string }[] = [
   { value: 'medio', label: 'Medio de pago' },
 ];
 
+function ventaUsuarioParams(filtro: string): Record<string, string> {
+  if (filtro === '__mias__') return { mias: 'true' };
+  if (filtro === '__sin_asignar__') return { sinUsuario: 'true' };
+  if (filtro) return { usuarioId: filtro };
+  return {};
+}
+
 export function VentasPage() {
   const { user } = useAuth();
   const canDeleteVenta = isAdmin(user?.rol);
+  const canFilterAlcance = isAdmin(user?.rol);
+  const [filtroUsuario, setFiltroUsuario] = useState(() => (isAdmin(user?.rol) ? '' : '__mias__'));
+  const [usuariosFiltro, setUsuariosFiltro] = useState<{ id: string; nombre: string; eliminado: boolean }[]>([]);
   const [tab, setTab] = useState<'nueva' | 'historial'>('nueva');
   const [mediosPago, setMediosPago] = useState<MedioPagoItem[]>(FALLBACK_MEDIOS);
   const [turnosVenta, setTurnosVenta] = useState<TurnoVentaItem[]>(DEFAULT_TURNOS);
@@ -338,6 +348,13 @@ export function VentasPage() {
       })
       .catch(() => setTurnosVenta(DEFAULT_TURNOS));
   }, []);
+
+  useEffect(() => {
+    if (!canFilterAlcance) return;
+    api.getUsuariosFiltroVentas()
+      .then((data) => setUsuariosFiltro(data ?? []))
+      .catch(() => {});
+  }, [canFilterAlcance]);
 
   useEffect(() => {
     if (!editandoId && defaultMedioSlug && !mediosActivos.some((m) => m.slug === medioPagoSlug)) {
@@ -610,11 +627,16 @@ export function VentasPage() {
       };
       if (filtroTurno) params.turno = filtroTurno;
       if (filtroQ.trim()) params.q = filtroQ.trim();
+      Object.assign(params, ventaUsuarioParams(filtroUsuario));
 
+      const usuarioExtra = ventaUsuarioParams(filtroUsuario);
       const lista = await api.getVentas(params);
-      const resumenes = await Promise.all(
-        turnosActivos.map((t) => api.getVentaResumen(filtroDesde, t.slug))
-      );
+      const resumenes =
+        filtroDesde === filtroHasta
+          ? await Promise.all(
+              turnosActivos.map((t) => api.getVentaResumen(filtroDesde, t.slug, usuarioExtra))
+            )
+          : [];
       setVentas(lista);
       setResumen(resumenes);
     } catch {
@@ -622,7 +644,7 @@ export function VentasPage() {
     } finally {
       setLoadingHistorial(false);
     }
-  }, [filtroDesde, filtroHasta, filtroTurno, filtroQ, ordenar, direccion, turnosActivos]);
+  }, [filtroDesde, filtroHasta, filtroTurno, filtroQ, filtroUsuario, ordenar, direccion, turnosActivos]);
 
   useEffect(() => {
     if (tab === 'historial') loadHistorial();
@@ -1082,7 +1104,25 @@ export function VentasPage() {
           )}
 
           <div className="bg-white rounded-xl border border-stone-200 p-4 space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+              {canFilterAlcance && (
+              <div>
+                <label className="admin-field-label">Usuario</label>
+                <Select
+                  value={filtroUsuario}
+                  onChange={(e) => setFiltroUsuario(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  <option value="__mias__">Solo mías</option>
+                  <option value="__sin_asignar__">Sin asignar</option>
+                  {usuariosFiltro.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre}{u.eliminado ? ' (archivado)' : ''}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              )}
               <div>
                 <label className="admin-field-label">Desde</label>
                 <Input type="date" value={filtroDesde} onChange={(e) => setFiltroDesde(e.target.value)} />

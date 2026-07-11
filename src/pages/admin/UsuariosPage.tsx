@@ -185,7 +185,7 @@ export function UsuariosPage() {
         title="Eliminar usuario"
         description={
           usuarioAEliminar
-            ? `Se va a eliminar "${usuarioAEliminar.nombre}" (${usuarioAEliminar.email}). Su carrito de ventas también se borrará.`
+            ? `Se va a archivar "${usuarioAEliminar.nombre}" (${usuarioAEliminar.email}). No podrá iniciar sesión; sus ventas anteriores se mantienen.`
             : undefined
         }
         confirmLabel="Eliminar"

@@ -76,6 +76,12 @@ function origenLabel(o: string) {
   return map[o] ?? o;
 }
 
+function ventaUsuarioParams(filtro: string): Record<string, string> {
+  if (filtro === '__sin_asignar__') return { sinUsuario: 'true' };
+  if (filtro) return { usuarioId: filtro };
+  return {};
+}
+
 function Delta({ actual, anterior, invertir = false }: { actual: number; anterior?: number; invertir?: boolean }) {
   if (anterior == null || anterior === 0) return null;
   const pct = ((actual - anterior) / anterior) * 100;
@@ -116,6 +122,8 @@ export function EstadisticasPage() {
   const [hasta, setHasta] = useState(() => rangoPreset('mes').hasta);
   const [turno, setTurno] = useState('');
   const [medioPago, setMedioPago] = useState('');
+  const [filtroUsuario, setFiltroUsuario] = useState('');
+  const [usuariosFiltro, setUsuariosFiltro] = useState<{ id: string; nombre: string; eliminado: boolean }[]>([]);
   const [medios, setMedios] = useState<any[]>([]);
   const [turnos, setTurnos] = useState<TurnoVentaItem[]>(DEFAULT_TURNOS);
   const [data, setData] = useState<any>(null);
@@ -125,6 +133,9 @@ export function EstadisticasPage() {
     api.getMediosPagoActivos().then(setMedios).catch(() => {});
     api.getTurnosVentaActivos()
       .then((data) => data?.length && setTurnos(data))
+      .catch(() => {});
+    api.getUsuariosFiltroVentas()
+      .then((data) => setUsuariosFiltro(data ?? []))
       .catch(() => {});
   }, []);
 
@@ -143,6 +154,7 @@ export function EstadisticasPage() {
       const params: Record<string, string> = { desde, hasta, comparar: 'true' };
       if (turno) params.turno = turno;
       if (medioPago) params.medioPago = medioPago;
+      Object.assign(params, ventaUsuarioParams(filtroUsuario));
       const res = await api.getEstadisticasResumen(params);
       setData(res);
     } catch {
@@ -150,7 +162,7 @@ export function EstadisticasPage() {
     } finally {
       setLoading(false);
     }
-  }, [desde, hasta, turno, medioPago]);
+  }, [desde, hasta, turno, medioPago, filtroUsuario]);
 
   useEffect(() => {
     load();
@@ -183,6 +195,16 @@ export function EstadisticasPage() {
       (data?.porCategoria ?? []).slice(0, 8).map((c: any) => ({
         nombre: c.categoriaNombre.length > 18 ? `${c.categoriaNombre.slice(0, 16)}…` : c.categoriaNombre,
         facturacion: c.facturacion,
+      })),
+    [data]
+  );
+
+  const porUsuarioChart = useMemo(
+    () =>
+      (data?.porUsuario ?? []).map((u: any) => ({
+        nombre: u.usuarioNombre.length > 20 ? `${u.usuarioNombre.slice(0, 18)}…` : u.usuarioNombre,
+        facturacion: u.facturacion,
+        ventas: u.ventas,
       })),
     [data]
   );
@@ -273,6 +295,22 @@ export function EstadisticasPage() {
               {medios.map((m) => (
                 <option key={m.slug} value={m.slug}>
                   {m.nombre}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="shrink-0">
+            <label className="admin-field-label">Persona</label>
+            <Select
+              className="admin-select-compact"
+              value={filtroUsuario}
+              onChange={(e) => setFiltroUsuario(e.target.value)}
+            >
+              <option value="">Todas</option>
+              <option value="__sin_asignar__">Sin asignar</option>
+              {usuariosFiltro.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre}{u.eliminado ? ' (archivado)' : ''}
                 </option>
               ))}
             </Select>
@@ -427,6 +465,23 @@ export function EstadisticasPage() {
                   </table>
                 </div>
               </div>
+
+              {!filtroUsuario && porUsuarioChart.length > 0 && (
+                <div className="rounded-xl border border-stone-200 bg-white p-4">
+                  <h3 className="text-sm font-semibold text-stone-800 mb-4">Facturación por persona</h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={porUsuarioChart} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" />
+                        <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                        <YAxis type="category" dataKey="nombre" width={110} tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={(v) => fmt(Number(v ?? 0))} />
+                        <Bar dataKey="facturacion" fill="#6B4423" radius={[0, 4, 4, 0]} name="Facturación" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-stone-200 bg-white p-4">
