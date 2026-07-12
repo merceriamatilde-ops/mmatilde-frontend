@@ -316,6 +316,13 @@ export function ProductosTable({
                       >
                         {item.activo ? 'Sí' : 'No'}
                       </span>
+                    ) : item.esVentaLibre ? (
+                      <span
+                        className="text-[11px] font-medium text-stone-400"
+                        title="El producto de venta libre nunca se muestra en el catálogo"
+                      >
+                        Oculto
+                      </span>
                     ) : (
                     <div className="flex justify-center">
                       <Switch
@@ -329,13 +336,13 @@ export function ProductosTable({
                   {!readOnly && (
                   <>
                   <TableCell className="text-xs text-stone-500 whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      {item.ultimaSync ? (
-                        <span title={formatDateTimeAr(item.ultimaSync)}>{formatDateTimeAr(item.ultimaSync)}</span>
-                      ) : (
-                        <span className="text-stone-400">Nunca</span>
-                      )}
-                      {item.codigoMakor && (
+                    {item.proveedorId === 1 ? (
+                      <div className="flex items-center gap-1">
+                        {item.ultimaSync ? (
+                          <span title={formatDateTimeAr(item.ultimaSync)}>{formatDateTimeAr(item.ultimaSync)}</span>
+                        ) : (
+                          <span className="text-stone-400">Nunca</span>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleResync(item.id)}
@@ -345,8 +352,10 @@ export function ProductosTable({
                         >
                           <RefreshCw size={14} className={loadingIds.has(item.id) ? 'animate-spin' : ''} />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <span className="text-stone-300">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
@@ -370,6 +379,7 @@ export function ProductosTable({
                           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                         </svg>
                       </button>
+                      {!item.esVentaLibre && (
                       <button
                         onClick={() => setProductoAEliminar(item)}
                         disabled={loadingIds.has(item.id)}
@@ -392,6 +402,7 @@ export function ProductosTable({
                           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                         </svg>
                       </button>
+                      )}
                     </div>
                   </TableCell>
                   </>

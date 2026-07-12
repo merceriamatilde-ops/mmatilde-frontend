@@ -46,6 +46,7 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
 
   const [variantes, setVariantes] = useState<any[]>([]);
   const [colores, setColores] = useState<any[]>([]);
+  const [mostrarColoresRepetidos, setMostrarColoresRepetidos] = useState(false);
   const [subcategorias, setSubcategorias] = useState<any[]>([]);
   
   const [relacionados, setRelacionados] = useState<any[]>([]);
@@ -504,19 +505,30 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
             />
             
             <div className="pt-4 border-t border-stone-100">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <div>
                   <h4 className="text-sm font-bold text-stone-900">Variantes del Producto</h4>
                   <p className="text-xs text-stone-500">Colores, talles, medidas y formatos de venta</p>
                 </div>
-                <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => setVariantes([{ id: null, colorId: '', talle: '', medida: '', codigoArticulo: '', activo: true }, ...variantes])}
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Agregar
-                </Button>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-stone-600 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={mostrarColoresRepetidos}
+                      onChange={(e) => setMostrarColoresRepetidos(e.target.checked)}
+                      className="rounded border-stone-300 text-brand-700 focus:ring-brand-600"
+                    />
+                    Mostrar colores repetidos
+                  </label>
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setVariantes([{ id: null, colorId: '', talle: '', medida: '', codigoArticulo: '', activo: true }, ...variantes])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Agregar
+                  </Button>
+                </div>
               </div>
 
               {variantes.length > 0 ? (
@@ -529,9 +541,22 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
                       (other.medida || '').trim() === (v.medida || '').trim()
                     ) !== -1;
 
+                    const usadosPorOtras = new Set(
+                      variantes
+                        .filter((_, idx) => idx !== i)
+                        .map((o) => String(o.colorId))
+                        .filter((cid) => cid && cid !== 'undefined')
+                    );
+                    const coloresDisponibles = colores.filter(
+                      (c) =>
+                        mostrarColoresRepetidos ||
+                        String(c.id) === String(v.colorId) ||
+                        !usadosPorOtras.has(String(c.id))
+                    );
+
                     return (
                       <div key={i} className={`flex flex-wrap items-center gap-3 p-3 rounded-lg border ${isDuplicate ? 'border-red-400 bg-red-50/50 shadow-sm' : 'border-stone-200 bg-stone-50'}`}>
-                      <div className="w-full md:w-auto flex-1 min-w-[120px]">
+                      <div className="w-full md:w-auto flex-[2] min-w-[200px]">
                         <Select
                           value={v.colorId || ''}
                           onChange={(e) => {
@@ -541,12 +566,12 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
                           }}
                         >
                           <option value="">(Sin color)</option>
-                          {colores.map(c => (
+                          {coloresDisponibles.map(c => (
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                           ))}
                         </Select>
                       </div>
-                      <div className="w-1/3 md:w-auto md:w-24">
+                      <div className="w-1/4 md:w-16">
                         <Input 
                           placeholder="Talle"
                           value={v.talle || ''}
