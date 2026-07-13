@@ -21,22 +21,33 @@ export function HomePage() {
     colecciones: ColeccionCardData[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
     api
       .getHomeData()
       .then((res) => {
+        if (cancelled) return;
         setData({
           categorias: res.categorias || [],
           productosRecientes: res.productosRecientes || [],
           colecciones: res.colecciones || [],
         });
-        setLoading(false);
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error(err);
-        setLoading(false);
+        setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -47,8 +58,38 @@ export function HomePage() {
     );
   }
 
-  if (!data) {
-    return <div className="py-20 text-center text-red-500">Error al cargar datos del catálogo.</div>;
+  // Nunca renderizamos un error "pelado": mantenemos contenido real (SEO + intro + accesos)
+  // para que los buscadores no lo interpreten como soft 404 ante un fallo transitorio de red.
+  if (failed || !data) {
+    return (
+      <div className="animate-fade-in">
+        <SEO />
+        <section className="py-16">
+          <div className="container mx-auto max-w-2xl px-4 text-center">
+            <h1 className="font-outfit text-2xl font-bold text-stone-900">Matilde Mercería</h1>
+            <p className="mt-3 text-stone-600">
+              Estamos actualizando el catálogo. Volvé a intentar en unos segundos o mirá las
+              categorías.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <a
+                href="/categorias"
+                className="inline-flex items-center justify-center rounded-full bg-brand-800 px-5 py-[11px] text-[15px] font-semibold text-white transition-colors hover:bg-brand-900"
+              >
+                Ver categorías
+              </a>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center justify-center rounded-full bg-stone-100 px-5 py-[11px] text-[15px] font-semibold text-brand-800 transition-colors hover:bg-stone-200"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (

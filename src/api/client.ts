@@ -36,10 +36,33 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
   return text ? JSON.parse(text) : ({} as T);
 }
 
+/** GET con reintentos para tolerar fallos transitorios (importante para el render de bots/SEO). */
+export async function apiFetchRetry<T>(
+  endpoint: string,
+  retries = 3,
+  delayMs = 600,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await apiFetch<T>(endpoint);
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number })?.status;
+      // No reintentar errores de cliente (4xx) salvo 429.
+      if (status && status >= 400 && status < 500 && status !== 429) throw err;
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, delayMs * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // API Methods
 export const api = {
   login: (data: any) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
-  getHomeData: () => apiFetch<any>('/catalogo/home'),
+  getHomeData: () => apiFetchRetry<any>('/catalogo/home'),
   getColecciones: () => apiFetch<any[]>('/catalogo/colecciones'),
   getColeccion: (slug: string, categoria?: string) => {
     const q = categoria ? `?categoria=${encodeURIComponent(categoria)}` : '';

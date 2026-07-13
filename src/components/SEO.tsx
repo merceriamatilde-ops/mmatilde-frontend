@@ -24,7 +24,12 @@ export function SEO({
   const pageTitle = title ? `${title} | Matilde Mercería` : siteName;
   const pageDescription = description || defaultDescription;
   const pageImage = image || defaultImage;
-  const pageUrl = url || typeof window !== 'undefined' ? window.location.href : '';
+
+  // URL canónica: siempre www + path, sin query/hash, para deduplicar apex/www y variantes.
+  const SITE_ORIGIN = 'https://www.merceriamatilde.com';
+  const canonicalUrl =
+    url ||
+    (typeof window !== 'undefined' ? `${SITE_ORIGIN}${window.location.pathname}` : SITE_ORIGIN);
 
   return (
     <Helmet>
@@ -32,12 +37,13 @@ export function SEO({
       <title>{pageTitle}</title>
       <meta name="title" content={pageTitle} />
       <meta name="description" content={pageDescription} />
+      <link rel="canonical" href={canonicalUrl} />
 
       {/* Open Graph (WhatsApp, Facebook, LinkedIn) */}
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={pageDescription} />
       <meta property="og:type" content={type} />
-      <meta property="og:url" content={pageUrl} />
+      <meta property="og:url" content={canonicalUrl} />
       <meta property="og:image" content={pageImage} />
       <meta property="og:site_name" content="Matilde Mercería" />
 
