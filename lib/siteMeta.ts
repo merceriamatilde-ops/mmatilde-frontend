@@ -9,8 +9,10 @@ export const DEFAULT_DESCRIPTION =
 export const SOCIAL_BOT_RE =
   /facebookexternalhit|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|pinterest/i;
 
+export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-default.png`;
+
 export function absoluteUrl(src?: string | null): string {
-  if (!src) return `${SITE_ORIGIN}/logo-merceria.svg`;
+  if (!src) return DEFAULT_OG_IMAGE;
   if (src.startsWith('http://') || src.startsWith('https://')) return src;
   const path = src.startsWith('/') ? src : `/${src}`;
   return `${SITE_ORIGIN}${path}`;

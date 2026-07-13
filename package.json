@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "generate:og": "node scripts/generate-og-image.mjs",
+    "build": "npm run generate:og && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -29,6 +30,7 @@
     "autoprefixer": "^10.5.1",
     "oxlint": "^1.69.0",
     "postcss": "^8.5.15",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.19",
     "typescript": "~6.0.2",
     "vite": "^8.1.0"
