@@ -111,6 +111,17 @@ export const api = {
   updateProducto: (id: number, data: any) => apiFetch<any>(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProducto: (id: number) => apiFetch<any>(`/productos/${id}`, { method: 'DELETE' }),
   syncProducto: (id: number) => apiFetch<any>(`/productos/${id}/sync`, { method: 'POST' }),
+  getProductosConVariantes: (q: string, excluirId?: number) => {
+    const query = new URLSearchParams({ q });
+    if (excluirId) query.append('excluirId', excluirId.toString());
+    return apiFetch<{ id: number; nombre: string; codigoMakor: string; variantesCount: number }[]>(
+      `/productos/con-variantes?${query.toString()}`,
+    );
+  },
+  getVariantesProducto: (id: number) =>
+    apiFetch<
+      { colorId: number | null; colorNombre: string | null; talle: string | null; medida: string | null; codigoArticulo: string | null; activo: boolean; orden: number }[]
+    >(`/productos/${id}/variantes`),
   toggleProductoActivo: (id: number, activo: boolean) => apiFetch<any>(`/productos/${id}/toggle-activo`, { method: 'PUT', body: JSON.stringify({ value: activo }) }),
   toggleProductoDestacado: (id: number, destacado: boolean) => apiFetch<any>(`/productos/${id}/toggle-destacado`, { method: 'PUT', body: JSON.stringify({ value: destacado }) }),
   bulkToggleProductos: (ids: number[], activo: boolean) => apiFetch<any>('/productos/bulk-toggle', { method: 'PUT', body: JSON.stringify({ ids, activo }) }),

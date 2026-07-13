@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, UploadCloud, Image as ImageIcon, Loader2, Plus, Trash2, Search } from 'lucide-react';
+import { X, UploadCloud, Image as ImageIcon, Loader2, Plus, Trash2, Search, Copy } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Switch } from '../ui/Switch';
@@ -47,6 +47,15 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
   const [variantes, setVariantes] = useState<any[]>([]);
   const [colores, setColores] = useState<any[]>([]);
   const [mostrarColoresRepetidos, setMostrarColoresRepetidos] = useState(false);
+
+  // Copiar variantes desde otro producto
+  const [copiarOpen, setCopiarOpen] = useState(false);
+  const [copiarSearch, setCopiarSearch] = useState('');
+  const [copiarResults, setCopiarResults] = useState<any[]>([]);
+  const [copiarLoading, setCopiarLoading] = useState(false);
+  const [copiarSku, setCopiarSku] = useState(false);
+  const [copiarSource, setCopiarSource] = useState<any | null>(null);
+  const copiarBoxRef = useRef<HTMLDivElement>(null);
   const [subcategorias, setSubcategorias] = useState<any[]>([]);
   
   const [relacionados, setRelacionados] = useState<any[]>([]);
@@ -93,6 +102,81 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
     }, 500);
     return () => clearTimeout(timer);
   }, [searchRel, product?.id, relacionados]);
+
+  useEffect(() => {
+    if (!copiarOpen) return;
+    const q = normalizeSearchQuery(copiarSearch);
+    if (q.length < 2) {
+      setCopiarResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setCopiarLoading(true);
+      try {
+        const res = await api.getProductosConVariantes(q, product?.id);
+        setCopiarResults(res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setCopiarLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [copiarSearch, copiarOpen, product?.id]);
+
+  useEffect(() => {
+    if (!copiarOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (copiarBoxRef.current && !copiarBoxRef.current.contains(e.target as Node)) {
+        setCopiarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [copiarOpen]);
+
+  const mapVariantesCopiadas = (source: any[]) =>
+    source.map((v, idx) => ({
+      id: null,
+      colorId: v.colorId ? String(v.colorId) : '',
+      talle: v.talle || '',
+      medida: v.medida || '',
+      codigoArticulo: copiarSku ? v.codigoArticulo || '' : '',
+      activo: v.activo ?? true,
+      orden: idx,
+    }));
+
+  const aplicarCopia = async (prod: any, modo: 'reemplazar' | 'sumar') => {
+    try {
+      setCopiarLoading(true);
+      const source = await api.getVariantesProducto(prod.id);
+      if (!source.length) {
+        toast.error('Ese producto no tiene variantes.');
+        return;
+      }
+      const copiadas = mapVariantesCopiadas(source);
+      setVariantes((prev) => (modo === 'reemplazar' ? copiadas : [...prev, ...copiadas]));
+      toast.success(
+        `${copiadas.length} ${copiadas.length === 1 ? 'variante copiada' : 'variantes copiadas'} de "${prod.nombre}"`,
+      );
+      setCopiarOpen(false);
+      setCopiarSource(null);
+      setCopiarSearch('');
+      setCopiarResults([]);
+    } catch (err: any) {
+      toast.error(err.message || 'Error al copiar variantes');
+    } finally {
+      setCopiarLoading(false);
+    }
+  };
+
+  const handleCopiarSelect = (prod: any) => {
+    if (variantes.length > 0) {
+      setCopiarSource(prod);
+    } else {
+      aplicarCopia(prod, 'reemplazar');
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -520,6 +604,78 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
                     />
                     Mostrar colores repetidos
                   </label>
+
+                  <div className="relative" ref={copiarBoxRef}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCopiarOpen((v) => !v)}
+                    >
+                      <Copy className="h-4 w-4 mr-2" /> Copiar de...
+                    </Button>
+
+                    {copiarOpen && (
+                      <div className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-stone-200 bg-white p-3 shadow-lg">
+                        <p className="text-xs font-medium text-stone-500 mb-2">
+                          Copiar variantes de otro producto
+                        </p>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                          <Input
+                            autoFocus
+                            placeholder="Buscar producto (min 2 letras)..."
+                            value={copiarSearch}
+                            onChange={(e) => setCopiarSearch(e.target.value)}
+                            className="pl-9"
+                          />
+                          {copiarLoading && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-brand-600" />
+                          )}
+                        </div>
+
+                        <label className="mt-2 flex items-center gap-1.5 text-xs text-stone-600 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={copiarSku}
+                            onChange={(e) => setCopiarSku(e.target.checked)}
+                            className="rounded border-stone-300 text-brand-700 focus:ring-brand-600"
+                          />
+                          Copiar también el SKU de cada variante
+                        </label>
+
+                        <div className="mt-2 max-h-56 overflow-y-auto">
+                          {copiarResults.length > 0 ? (
+                            copiarResults.map((r) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => handleCopiarSelect(r)}
+                                className="w-full text-left px-2 py-2 rounded-lg hover:bg-stone-50 flex items-center justify-between gap-2"
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-stone-900 truncate">{r.nombre}</p>
+                                  <p className="text-xs text-stone-500 truncate">{r.codigoMakor}</p>
+                                </div>
+                                <span className="shrink-0 text-xs font-medium text-brand-700 bg-brand-50 rounded-full px-2 py-0.5">
+                                  {r.variantesCount} {r.variantesCount === 1 ? 'variante' : 'variantes'}
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="text-xs text-stone-400 text-center py-4">
+                              {copiarSearch.trim().length < 2
+                                ? 'Escribí para buscar productos con variantes'
+                                : copiarLoading
+                                  ? 'Buscando...'
+                                  : 'Sin resultados'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <Button 
                     type="button" 
                     size="sm" 
@@ -789,6 +945,29 @@ export function ProductoModal({ product, categorias, onClose, onSaved, onPricesS
           </Button>
         </div>
       </div>
+
+      {copiarSource && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h4 className="text-lg font-bold text-stone-900">Este producto ya tiene variantes</h4>
+            <p className="text-sm text-stone-600 mt-1">
+              Vas a copiar las variantes de <span className="font-medium">"{copiarSource.nombre}"</span>.
+              ¿Querés reemplazar las actuales o sumarlas?
+            </p>
+            <div className="flex flex-wrap justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setCopiarSource(null)} disabled={copiarLoading}>
+                Cancelar
+              </Button>
+              <Button variant="outline" onClick={() => aplicarCopia(copiarSource, 'sumar')} disabled={copiarLoading}>
+                Sumar
+              </Button>
+              <Button onClick={() => aplicarCopia(copiarSource, 'reemplazar')} disabled={copiarLoading}>
+                Reemplazar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
