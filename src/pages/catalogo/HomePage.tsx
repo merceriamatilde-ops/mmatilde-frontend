@@ -14,7 +14,28 @@ import {
   type ProductoCardData,
 } from '../../components/catalogo';
 
+// Columnas reales de ProductGrid por breakpoint (base 2, sm 3, md 4, lg 5, xl 6).
+function useGridColumns(): number {
+  const calc = () => {
+    if (typeof window === 'undefined') return 2;
+    const w = window.innerWidth;
+    if (w >= 1280) return 6;
+    if (w >= 1024) return 5;
+    if (w >= 768) return 4;
+    if (w >= 640) return 3;
+    return 2;
+  };
+  const [cols, setCols] = useState(calc);
+  useEffect(() => {
+    const onResize = () => setCols(calc());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  return cols;
+}
+
 export function HomePage() {
+  const cols = useGridColumns();
   const [data, setData] = useState<{
     categorias: CategoriaCardData[];
     productosRecientes: ProductoCardData[];
@@ -138,12 +159,18 @@ export function HomePage() {
       {/* Banda gris full-bleed */}
       <section className="border-y border-stone-200 bg-stone-50 py-11">
         <div className="container mx-auto max-w-7xl px-4">
-          <SectionHeading title="Nuevos ingresos" subtitle="Lo último que sumamos al local" />
+          <SectionHeading title="Te puede interesar" subtitle="Lo más buscado en el local" />
           {data.productosRecientes.length === 0 ? (
             <p className="text-stone-500">No hay productos visibles por el momento.</p>
           ) : (
             <ProductGrid>
-              {data.productosRecientes.map((p) => (
+              {(data.productosRecientes.length < cols
+                ? data.productosRecientes
+                : data.productosRecientes.slice(
+                    0,
+                    Math.floor(data.productosRecientes.length / cols) * cols,
+                  )
+              ).map((p) => (
                 <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Home" />
               ))}
             </ProductGrid>

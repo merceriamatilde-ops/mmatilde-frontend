@@ -143,6 +143,20 @@ export function ConfigForm() {
               onChange={handleChange}
             />
           </div>
+          <div className="space-y-2 col-span-2">
+            <label className="text-sm font-medium">Productos en "Te puede interesar"</label>
+            <Input
+              name="home_max_destacados"
+              type="number"
+              min={1}
+              max={60}
+              value={config['home_max_destacados'] ?? '12'}
+              onChange={handleChange}
+            />
+            <p className="text-xs text-stone-400">
+              Trae los más vendidos; completa con productos al azar. La grilla se rellena sin huecos.
+            </p>
+          </div>
         </div>
       </div>
 
