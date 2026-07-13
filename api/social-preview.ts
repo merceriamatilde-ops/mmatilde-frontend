@@ -85,16 +85,11 @@ async function resolveMeta(pathname: string): Promise<PageMeta> {
     }
   }
 
-  // Home / buscar / fallback
-  const home = await fetchJson<{
-    productosRecientes?: { imagenUrl?: string }[];
-  }>('/api/catalogo/home');
-  const homeImg = home?.productosRecientes?.find((p) => p.imagenUrl)?.imagenUrl;
-
+  // Home / buscar / fallback: usamos el logo, no la foto de un producto.
   return {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,
-    image: absoluteUrl(homeImg),
+    image: absoluteUrl(null),
     url,
     type: 'website',
   };
