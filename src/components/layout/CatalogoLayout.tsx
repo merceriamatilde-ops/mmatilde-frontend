@@ -46,10 +46,10 @@ export function CatalogoLayout() {
   };
 
   const renderHorarios = () => {
-    if (!config.horarios) return <li>No hay horarios configurados.</li>;
+    if (!config.horarios) return <li>Consultanos horarios por WhatsApp.</li>;
     try {
       const grupos = JSON.parse(config.horarios);
-      if (!Array.isArray(grupos) || grupos.length === 0) return <li>No hay horarios configurados.</li>;
+      if (!Array.isArray(grupos) || grupos.length === 0) return <li>Consultanos horarios por WhatsApp.</li>;
       
       const elements = grupos.map((g: any, i: number) => {
         const diasStr = formatDiasConsecutivos(g.dias);

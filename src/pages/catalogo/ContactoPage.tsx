@@ -5,6 +5,7 @@ import { api } from '../../api/client';
 import { Helmet } from 'react-helmet-async';
 import { SEO } from '../../components/SEO';
 import { Spinner } from '../../components/ui/Spinner';
+import { Select } from '../../components/ui/Select';
 import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
 import { SITE_ORIGIN } from '../../../lib/siteMeta';
 
@@ -204,17 +205,17 @@ export function ContactoPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-stone-700">Asunto</label>
-                  <select
+                  <Select
                     value={asunto}
                     onChange={(e) => setAsunto(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="rounded-lg border-stone-200 focus:ring-brand-500"
                   >
                     {ASUNTOS.map((a) => (
                       <option key={a.value} value={a.value}>
                         {a.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-stone-700">Mensaje</label>
