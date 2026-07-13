@@ -52,6 +52,7 @@ export function ColeccionDetallePage() {
       <SEO
         title={currentCat ? `${data.nombre} · ${currentCat.nombre}` : data.nombre}
         description={data.descripcion || `Productos de ${data.nombre} en Matilde Mercería.`}
+        image={productos.find((p: any) => p.imagenUrl)?.imagenUrl}
       />
 
       <div>

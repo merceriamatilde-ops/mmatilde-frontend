@@ -43,6 +43,7 @@ export function CategoriaDetallePage() {
       <SEO 
         title={currentSub ? `${categoriaName} - ${currentSub.nombre}` : categoriaName} 
         description={`Explorá todos los productos de la categoría ${categoriaName} en Matilde Mercería.`}
+        image={productos.find((p: any) => p.imagenUrl)?.imagenUrl}
       />
       
       <div>
