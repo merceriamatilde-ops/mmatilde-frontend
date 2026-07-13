@@ -27,6 +27,7 @@ import { CategoriaDetallePage } from './pages/catalogo/CategoriaDetallePage';
 import { ProductoDetallePage } from './pages/catalogo/ProductoDetallePage';
 import { BuscarPage } from './pages/catalogo/BuscarPage';
 import { ColeccionDetallePage } from './pages/catalogo/ColeccionDetallePage';
+import { ContactoPage } from './pages/catalogo/ContactoPage';
 import { NotFoundPage } from './pages/catalogo/NotFoundPage';
 import { LoginPage } from './pages/auth/LoginPage';
 
@@ -102,6 +103,7 @@ function App() {
                   <Route path="colecciones/:slug" element={<ColeccionDetallePage />} />
                   <Route path="producto/:slug" element={<ProductoDetallePage />} />
                   <Route path="buscar" element={<BuscarPage />} />
+                  <Route path="contacto" element={<ContactoPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </>

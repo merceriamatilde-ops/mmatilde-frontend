@@ -128,6 +128,13 @@ export function MobileMenu({ isOpen, onClose, config }: MobileMenuProps) {
             >
               Buscar
             </Link>
+            <Link 
+              to="/contacto" 
+              onClick={onClose}
+              className="py-3 text-lg font-medium text-brand-800 border-b border-stone-50"
+            >
+              Contacto
+            </Link>
           </nav>
         </div>
 

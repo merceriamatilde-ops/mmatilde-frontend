@@ -136,6 +136,18 @@ export function CatalogoLayout() {
               >
                 Categorías
               </NavLink>
+              <NavLink
+                to="/contacto"
+                className={({ isActive }) =>
+                  `rounded-full px-4 py-2 transition-colors ${
+                    isActive
+                      ? 'bg-stone-100 text-brand-800'
+                      : 'text-stone-600 hover:bg-stone-100 hover:text-brand-800'
+                  }`
+                }
+              >
+                Contacto
+              </NavLink>
             </nav>
 
             {/* Mobile Search Icon */}
@@ -219,6 +231,11 @@ export function CatalogoLayout() {
           <div>
             <h4 className="mb-3 font-outfit text-base font-semibold text-white">Contacto</h4>
             <ul className="space-y-2 text-sm text-brand-200">
+              <li>
+                <Link to="/contacto" className="transition-colors hover:text-white">
+                  Ver página de contacto →
+                </Link>
+              </li>
               <li>📍 {config.direccion || 'Av. Francisco Ramírez 1883, Paraná'}</li>
               <li>📱 {config.telefono || '0343 519-0082'}</li>
               {config.email && (
