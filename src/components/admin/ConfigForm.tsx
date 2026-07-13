@@ -114,6 +114,38 @@ export function ConfigForm() {
         </div>
       </div>
 
+      <div className="space-y-4 border-t border-stone-200 pt-6">
+        <h3 className="text-lg font-medium">Home / Catálogo</h3>
+        <p className="text-sm text-stone-500">
+          Cantidad de categorías destacadas que se muestran en la home. Se ordenan arrastrando en la
+          sección Categorías.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Máx. en celular</label>
+            <Input
+              name="home_max_categorias_mobile"
+              type="number"
+              min={1}
+              max={24}
+              value={config['home_max_categorias_mobile'] ?? '4'}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Máx. en escritorio</label>
+            <Input
+              name="home_max_categorias_desktop"
+              type="number"
+              min={1}
+              max={24}
+              value={config['home_max_categorias_desktop'] ?? '6'}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4 border-t border-stone-200 pt-6 pb-4">
         <h3 className="text-lg font-medium">Horarios de Atención</h3>
         <p className="text-sm text-stone-500">Agrupá los días que comparten el mismo horario. Podés agregar turnos mañana y tarde.</p>

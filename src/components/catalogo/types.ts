@@ -12,6 +12,7 @@ export type CategoriaCardData = {
   icono?: string;
   icon?: string;
   count?: number;
+  imagen?: string | null;
 };
 
 export type ColeccionCardData = {

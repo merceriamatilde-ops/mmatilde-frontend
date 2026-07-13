@@ -169,7 +169,7 @@ export function CatalogoLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 bg-brand-900 text-brand-100">
+      <footer className="bg-brand-900 text-brand-100">
         <div className="container mx-auto flex max-w-7xl flex-col gap-8 px-4 py-12 md:flex-row md:justify-between md:gap-12">
           <div className="md:max-w-sm">
             <h3 className="font-outfit text-lg font-semibold text-white">{config.nombre_negocio || 'Matilde Mercería'}</h3>

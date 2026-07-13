@@ -80,6 +80,13 @@ export const api = {
   updateCategoria: (id: number, nombre: string) => apiFetch<any>(`/categorias/${id}`, { method: 'PUT', body: JSON.stringify({ nombre }) }),
   deleteCategoria: (id: number) => apiFetch<any>(`/categorias/${id}`, { method: 'DELETE' }),
 
+  reorderCategorias: (ids: number[]) =>
+    apiFetch<void>('/categorias/orden', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  updateCategoriaImagen: (id: number, imagen: string | null) =>
+    apiFetch<{ imagen: string | null }>(`/categorias/${id}/imagen`, { method: 'PUT', body: JSON.stringify({ imagen }) }),
+  syncCategoriaImagen: (id: number) =>
+    apiFetch<{ imagen: string }>(`/categorias/${id}/sync-imagen`, { method: 'POST' }),
+
   createSubcategoria: (categoriaId: number, nombre: string) => apiFetch<any>('/categorias/subcategorias', { method: 'POST', body: JSON.stringify({ categoriaId, nombre }) }),
   updateSubcategoria: (id: number, nombre: string) => apiFetch<any>(`/categorias/subcategorias/${id}`, { method: 'PUT', body: JSON.stringify({ nombre }) }),
   deleteSubcategoria: (id: number) => apiFetch<any>(`/categorias/subcategorias/${id}`, { method: 'DELETE' }),

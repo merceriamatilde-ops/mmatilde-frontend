@@ -19,6 +19,8 @@ export function HomePage() {
     categorias: CategoriaCardData[];
     productosRecientes: ProductoCardData[];
     colecciones: ColeccionCardData[];
+    maxMobile: number;
+    maxDesktop: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -35,6 +37,8 @@ export function HomePage() {
           categorias: res.categorias || [],
           productosRecientes: res.productosRecientes || [],
           colecciones: res.colecciones || [],
+          maxMobile: res.maxCategoriasMobile || 4,
+          maxDesktop: res.maxCategoriasDesktop || 6,
         });
       })
       .catch((err) => {
@@ -96,8 +100,7 @@ export function HomePage() {
     <div className="animate-fade-in">
       <SEO />
 
-      {/* Banda gris full-bleed */}
-      <HomeIntro categorias={data.categorias} />
+      <HomeIntro />
 
       <section className="py-11">
         <div className="container mx-auto max-w-7xl px-4">
@@ -106,9 +109,11 @@ export function HomePage() {
             subtitle="Encontrá lo que buscás más rápido"
             action={{ label: 'Ver todas', to: '/categorias' }}
           />
-          <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
-            {data.categorias.map((cat) => (
-              <CategoryCard key={cat.slug} categoria={cat} />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {data.categorias.slice(0, data.maxDesktop).map((cat, i) => (
+              <div key={cat.slug} className={i >= data.maxMobile ? 'hidden md:block' : ''}>
+                <CategoryCard categoria={cat} />
+              </div>
             ))}
           </div>
         </div>

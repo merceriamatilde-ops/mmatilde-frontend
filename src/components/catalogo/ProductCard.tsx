@@ -31,7 +31,7 @@ export function ProductCard({ producto, whatsappAction = 'Consultar_Catalogo' }:
         )}
       </Link>
 
-      <div className="flex flex-col gap-1 p-2 sm:p-2.5">
+      <div className="flex flex-1 flex-col gap-1 p-2 sm:p-2.5">
         {producto.categoria ? (
           <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-brand-600">
             {producto.categoria}
@@ -51,7 +51,7 @@ export function ProductCard({ producto, whatsappAction = 'Consultar_Catalogo' }:
           onClick={() =>
             ReactGA.event({ category: 'WhatsApp', action: whatsappAction, label: producto.nombre })
           }
-          className="mt-0.5 inline-flex w-full items-center justify-center gap-1 rounded-md bg-[#25D366] px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#1da851] sm:py-1.5 sm:text-xs"
+          className="mt-auto inline-flex w-full items-center justify-center gap-1 rounded-md bg-[#25D366] px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#1da851] sm:py-1.5 sm:text-xs"
         >
           <WhatsAppIcon size={12} />
           Consultar
