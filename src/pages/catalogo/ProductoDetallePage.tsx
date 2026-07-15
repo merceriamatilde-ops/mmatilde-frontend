@@ -114,11 +114,11 @@ export function ProductoDetallePage() {
                         {colors.map((c: any) => (
                           <div 
                             key={c.id} 
-                            className="group relative z-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-stone-200 shadow-sm transition-transform hover:z-20 hover:scale-110 hover:shadow-md"
+                            className="group relative z-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-stone-200 shadow-sm transition-transform hover:z-30 hover:scale-110 hover:shadow-md"
                             style={{ backgroundColor: c.hex }}
                             aria-label={c.nombre}
                           >
-                            <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-stone-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                            <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-stone-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-0 group-hover:opacity-100 group-hover:duration-150">
                               {c.nombre}
                             </span>
                           </div>
