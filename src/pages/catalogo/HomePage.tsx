@@ -123,7 +123,7 @@ export function HomePage() {
 
       <HomeIntro />
 
-      <section className="py-11">
+      <section className="pb-11 pt-7 md:py-11">
         <div className="container mx-auto max-w-7xl px-4">
           <SectionHeading
             title="Categorías destacadas"

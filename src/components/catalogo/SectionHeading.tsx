@@ -20,7 +20,7 @@ export function SectionHeading({ title, subtitle, action, className = '' }: Sect
       {action ? (
         <Link
           to={action.to}
-          className="shrink-0 text-[15px] font-semibold text-brand-600 transition-colors hover:text-brand-800"
+          className="shrink-0 self-start pt-2 text-[15px] font-semibold text-brand-600 transition-colors hover:text-brand-800"
         >
           {action.label} →
         </Link>
