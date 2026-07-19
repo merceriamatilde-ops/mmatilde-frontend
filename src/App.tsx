@@ -35,6 +35,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardPage } from './pages/admin/DashboardPage';
 import { ProductosPage } from './pages/admin/ProductosPage';
 import { CategoriasPage as AdminCategoriasPage } from './pages/admin/CategoriasPage';
+import { BannersPage } from './pages/admin/BannersPage';
 import { PreciosPage } from './pages/admin/PreciosPage';
 import { SyncPage } from './pages/admin/SyncPage';
 import { ConfiguracionPage } from './pages/admin/ConfiguracionPage';
@@ -81,6 +82,7 @@ function App() {
                   <Route path="productos" element={<RequireModule modulo="productos"><ProductosPage /></RequireModule>} />
                   <Route path="ventas" element={<RequireModule modulo="ventas"><VentasPage /></RequireModule>} />
                   <Route path="categorias" element={<RequireModule modulo="categorias"><AdminCategoriasPage /></RequireModule>} />
+                  <Route path="banners" element={<RequireModule modulo="banners"><BannersPage /></RequireModule>} />
                   <Route path="precios" element={<RequireModule modulo="precios"><PreciosPage /></RequireModule>} />
                   <Route path="estadisticas" element={<RequireModule modulo="estadisticas"><EstadisticasPage /></RequireModule>} />
                   <Route path="colores" element={<RequireModule modulo="colores"><ColoresPage /></RequireModule>} />

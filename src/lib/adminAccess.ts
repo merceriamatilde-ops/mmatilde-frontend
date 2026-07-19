@@ -3,6 +3,7 @@ export type ModuloKey =
   | 'ventas'
   | 'productos'
   | 'categorias'
+  | 'banners'
   | 'tags'
   | 'colores'
   | 'precios'
@@ -34,6 +35,7 @@ export const MODULOS_NAV: { key: ModuloKey; href: string; label: string }[] = [
   { key: 'ventas', href: '/ventas', label: 'Ventas' },
   { key: 'productos', href: '/productos', label: 'Productos' },
   { key: 'categorias', href: '/categorias', label: 'Categorías' },
+  { key: 'banners', href: '/banners', label: 'Banners' },
   { key: 'tags', href: '/tags', label: 'Tags' },
   { key: 'colores', href: '/colores', label: 'Colores' },
   { key: 'precios', href: '/precios', label: 'Precios' },

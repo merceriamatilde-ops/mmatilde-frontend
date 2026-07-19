@@ -5,3 +5,4 @@ export { ColeccionCard } from './ColeccionCard';
 export { ProductGrid } from './ProductGrid';
 export { SectionHeading } from './SectionHeading';
 export { HomeIntro } from './HomeIntro';
+export { BannerSlider } from './BannerSlider';

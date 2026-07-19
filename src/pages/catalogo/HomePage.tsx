@@ -4,6 +4,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { SEO } from '../../components/SEO';
 import {
   HomeIntro,
+  BannerSlider,
   SectionHeading,
   CategoryCard,
   ColeccionCard,
@@ -123,7 +124,9 @@ export function HomePage() {
 
       <HomeIntro />
 
-      <section className="pb-11 pt-7 md:py-11">
+      <BannerSlider />
+
+      <section className="pb-11 pt-4 md:py-11">
         <div className="container mx-auto max-w-7xl px-4">
           <SectionHeading
             title="Categorías destacadas"

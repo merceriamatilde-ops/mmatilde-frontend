@@ -4,12 +4,18 @@ import { Switch } from '../ui/Switch';
 import { Button } from '../ui/Button';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { Modal } from '../ui/Modal';
-import { Banknote, Star, StarOff, Pencil, RefreshCw } from 'lucide-react';
+import { Banknote, Star, StarOff, Pencil, RefreshCw, ExternalLink, Store } from 'lucide-react';
 import { api } from '../../api/client';
 import { toast } from 'sonner';
 import { formatPrice, formatDateTimeAr } from '../../lib/utils';
 import { resolveMakorPublicTitle } from '../../lib/makorPublicContent';
 import { ProductoPreciosResumen } from './ProductoPreciosResumen';
+import { SITE_ORIGIN } from '../../../lib/siteMeta';
+
+/** Misma búsqueda que usa el sync de un producto. */
+function makorSearchUrl(codigo: string) {
+  return `https://www.makorsa.com.ar/index.php?action=portal/search&advanced=1&fulltext=on&str=${encodeURIComponent(codigo)}`;
+}
 
 function PricesModal({
   product,
@@ -233,18 +239,48 @@ export function ProductosTable({
                     {item.codigoMakor || '—'}
                   </TableCell>
                   <TableCell className="max-w-[240px]">
-                    <button
-                      type="button"
-                      onClick={toggleNombreVista}
-                      className="font-medium text-stone-900 truncate text-left w-full hover:text-brand-800 transition-colors"
-                      title={
-                        showCatalogNames
-                          ? `Catálogo: ${displayNombre(item)}\nClic para ver original`
-                          : `Original: ${item.nombre}\nClic para ver catálogo`
-                      }
-                    >
-                      {displayNombre(item)}
-                    </button>
+                    <div className="flex min-w-0 items-start gap-1.5">
+                      <button
+                        type="button"
+                        onClick={toggleNombreVista}
+                        className="min-w-0 flex-1 truncate text-left font-medium text-stone-900 transition-colors hover:text-brand-800"
+                        title={
+                          showCatalogNames
+                            ? `Catálogo: ${displayNombre(item)}\nClic para ver original`
+                            : `Original: ${item.nombre}\nClic para ver catálogo`
+                        }
+                      >
+                        {displayNombre(item)}
+                      </button>
+                      <div className="flex shrink-0 items-center gap-0.5 pt-0.5">
+                        {item.proveedorId === 1 && item.codigoMakor && (
+                          <a
+                            href={makorSearchUrl(item.codigoMakor)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-md p-1 text-sky-600 transition-colors hover:bg-sky-50 hover:text-sky-700"
+                            title="Ver en Makor"
+                            aria-label="Ver en Makor"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        )}
+                        {item.activo && !item.esVentaLibre && item.slug && (
+                          <a
+                            href={`${SITE_ORIGIN}/producto/${item.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-md p-1 text-brand-700 transition-colors hover:bg-brand-50 hover:text-brand-800"
+                            title="Ver en el catálogo"
+                            aria-label="Ver en el catálogo"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Store size={14} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="max-w-[160px]">
                     <span

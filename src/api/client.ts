@@ -269,6 +269,20 @@ export const api = {
   updatePermisosModulos: (data: { modulos: Record<string, { habilitado: boolean; roles: string[] }> }) =>
     apiFetch('/permisos-modulos', { method: 'PUT', body: JSON.stringify(data) }),
 
+  // Banners
+  getBannersPublicos: (ubicacion = 'home') =>
+    apiFetchRetry<any[]>(`/catalogo/banners?ubicacion=${encodeURIComponent(ubicacion)}`),
+  getBannersAdmin: (ubicacion?: string) =>
+    apiFetch<any[]>(`/banners${ubicacion ? `?ubicacion=${encodeURIComponent(ubicacion)}` : ''}`),
+  createBanner: (data: any) => apiFetch<any>('/banners', { method: 'POST', body: JSON.stringify(data) }),
+  updateBanner: (id: number, data: any) =>
+    apiFetch<any>(`/banners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  reorderBanners: (ids: number[]) =>
+    apiFetch('/banners/orden', { method: 'PUT', body: JSON.stringify({ ids }) }),
+  toggleBanner: (id: number, activo: boolean) =>
+    apiFetch<any>(`/banners/${id}/toggle`, { method: 'PUT', body: JSON.stringify({ value: activo }) }),
+  deleteBanner: (id: number) => apiFetch<any>(`/banners/${id}`, { method: 'DELETE' }),
+
   // Usuarios (solo ADMIN)
   getUsuarios: () => apiFetch<any[]>('/usuarios'),
   getUsuariosFiltroVentas: () => apiFetch<any[]>('/usuarios/filtro-ventas'),

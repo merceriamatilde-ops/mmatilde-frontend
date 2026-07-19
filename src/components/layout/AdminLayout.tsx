@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Spinner } from '../ui/Spinner';
-import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3, Users } from 'lucide-react';
+import { LayoutDashboard, Package, FolderTree, Settings, RefreshCw, LogOut, Tags, Menu, X, Palette, Brain, Bookmark, ShoppingCart, BarChart3, Users, Images } from 'lucide-react';
 import { canAccessHref, isAdmin, MODULOS_NAV } from '../../lib/adminAccess';
 import { usePermisosModulos } from '../../hooks/usePermisosModulos';
 
@@ -32,6 +32,7 @@ export function AdminLayout() {
       ventas: ShoppingCart,
       productos: Package,
       categorias: FolderTree,
+      banners: Images,
       tags: Bookmark,
       colores: Palette,
       precios: Tags,
