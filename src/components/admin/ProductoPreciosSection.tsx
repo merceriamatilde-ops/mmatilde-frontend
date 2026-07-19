@@ -154,7 +154,12 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
     return costoBase;
   }, [precioCompra, cantidadCompra, costoBase]);
 
-  const sinBaseParaFormula = usaFormula && costoBasePreview == null;
+  const faltaPrecioCompra = usaFormula && (precioCompra == null || precioCompra <= 0);
+  const faltaUnidadCompra =
+    usaFormula &&
+    !faltaPrecioCompra &&
+    (!unidadBase || !cantidadCompra || !(parseFloat(cantidadCompra) > 0));
+  const sinBaseParaFormula = faltaPrecioCompra || faltaUnidadCompra;
   const usaInputPrecioPresentacion = usaPrecioManual || sinBaseParaFormula;
 
   const ivaAplicadoPreview = useMemo(() => {
@@ -419,9 +424,16 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
       setCantidadCompra(sug.cantidadUnidadCompra.toString());
       setEtiquetaCompra(sug.etiqueta);
       setAutoDetectada(true);
-      toast.success(sug.confiable ? 'Unidad detectada del título' : 'Unidad detectada (revisá si es correcta)');
+      markDirty();
+      if (sug.confiable) {
+        toast.success('Unidad detectada del título');
+      } else {
+        toast.message('Sin medida en el título → Unidad × 1', {
+          description: 'Podés cambiarlo si vendés por metro, gramo, etc.',
+        });
+      }
     } catch {
-      toast.error('No se pudo detectar unidad en el título');
+      toast.error('No se pudo detectar unidad');
     }
   };
 
@@ -819,9 +831,14 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
                 }}
                 placeholder="Ej: 8500"
               />
-              {sinBaseParaFormula && (
+              {faltaPrecioCompra && (
                 <p className="mt-1 text-[11px] text-amber-700">
                   Makor no envió precio. Cargalo acá para calcular con la fórmula.
+                </p>
+              )}
+              {faltaUnidadCompra && (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  Falta unidad o cantidad. Usá &quot;Detectar del título&quot; o poné Unidad × 1.
                 </p>
               )}
             </div>
@@ -893,7 +910,7 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
             Este es el precio del cartel / catálogo. No usa fórmula de margen.
           </p>
         )}
-        {sinBaseParaFormula && (
+        {faltaPrecioCompra && (
           <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
             <p className="text-xs text-amber-900">
               Este producto no tiene precio de compra en Makor. Cargá el precio arriba, ingresá precios de
@@ -906,6 +923,14 @@ export function ProductoPreciosSection({ productoId, nombreProducto, onPricesSav
                 usá precio fijo
               </button>
               .
+            </p>
+          </div>
+        )}
+        {faltaUnidadCompra && (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs text-amber-900">
+              Hay precio de compra, pero falta la unidad (gramos, metros, unidades…). Sin eso no se puede
+              calcular el margen. Usá &quot;Detectar del título&quot; o cargá Unidad × 1.
             </p>
           </div>
         )}
