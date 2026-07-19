@@ -120,7 +120,7 @@ export function BannerSlider() {
   if (banners.length === 0) return null;
 
   return (
-    <section className="container mx-auto max-w-7xl px-4 pt-4 md:pt-2">
+    <section className="container mx-auto max-w-7xl px-4 pt-4 md:pt-8">
       <div
         className="group relative overflow-hidden"
         onTouchStart={(e) => {

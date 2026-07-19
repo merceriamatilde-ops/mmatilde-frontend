@@ -126,7 +126,7 @@ export function HomePage() {
 
       <BannerSlider />
 
-      <section className="pb-11 pt-4 md:py-11">
+      <section className="pb-11 pt-4 md:pb-11 md:pt-8">
         <div className="container mx-auto max-w-7xl px-4">
           <SectionHeading
             title="Categorías destacadas"
