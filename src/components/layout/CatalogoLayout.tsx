@@ -7,6 +7,7 @@ import { Logo } from '../ui/Logo';
 import { MobileMenu } from '../ui/MobileMenu';
 import { WhatsAppIcon } from '../ui/WhatsAppIcon';
 import { trackSocial, trackWhatsApp } from '../../lib/analytics';
+import { PageMetaProvider } from '../PageMetaProvider';
 
 export function CatalogoLayout() {
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -81,6 +82,7 @@ export function CatalogoLayout() {
   const whatsappPhone = config.whatsapp || '+5493435190082';
 
   return (
+    <PageMetaProvider>
     <div className="flex min-h-screen flex-col bg-white font-sans">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-stone-100 bg-white shadow-sm">
@@ -272,5 +274,6 @@ export function CatalogoLayout() {
         <WhatsAppIcon size={30} />
       </a>
     </div>
+    </PageMetaProvider>
   );
 }

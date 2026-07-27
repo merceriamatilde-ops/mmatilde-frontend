@@ -40,12 +40,9 @@ export function ProductoDetallePage() {
 
   if (loading) {
     return (
-      <>
-        <SEO track={false} />
-        <div className="flex h-[50vh] items-center justify-center">
-          <Spinner size={40} />
-        </div>
-      </>
+      <div className="flex h-[50vh] items-center justify-center">
+        <Spinner size={40} />
+      </div>
     );
   }
   if (error || !producto) return <NotFoundPage />;

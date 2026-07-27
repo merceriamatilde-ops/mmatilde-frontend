@@ -32,13 +32,9 @@ export function CategoriaDetallePage() {
 
   if (loading) {
     return (
-      <>
-        {/* Title estable mientras carga; page_view lo manda el SEO final */}
-        <SEO track={false} />
-        <div className="flex h-[50vh] items-center justify-center">
-          <Spinner size={40} />
-        </div>
-      </>
+      <div className="flex h-[50vh] items-center justify-center">
+        <Spinner size={40} />
+      </div>
     );
   }
   if (error || !data) return <NotFoundPage />;

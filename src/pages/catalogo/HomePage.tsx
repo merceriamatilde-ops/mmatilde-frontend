@@ -76,10 +76,11 @@ export function HomePage() {
     };
   }, []);
 
+  // Title de home al toque (sin esperar el fetch) para no heredar el de la ruta anterior
   if (loading) {
     return (
       <>
-        <SEO track={false} />
+        <SEO />
         <div className="flex h-[50vh] items-center justify-center">
           <Spinner size={40} />
         </div>

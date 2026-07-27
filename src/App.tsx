@@ -10,10 +10,14 @@ import { trackPageViewFallback } from './lib/analytics';
 function RouteTracker() {
   const location = useLocation();
   React.useEffect(() => {
-    // Fallback por si la ruta no monta <SEO /> (BO / IA / páginas sueltas)
+    const host = window.location.hostname;
+    // Catálogo público: el <SEO /> manda el page_view con el title final.
+    // Fallback solo para BO / IA (sin SEO).
+    if (!host.startsWith('bo.') && !host.startsWith('ia.')) return;
+
     const t = window.setTimeout(() => {
       trackPageViewFallback(location.pathname + location.search);
-    }, 1500);
+    }, 500);
     return () => clearTimeout(t);
   }, [location.pathname, location.search]);
   return null;

@@ -8,6 +8,7 @@ import {
   canonicalForPath,
 } from '../../lib/siteMeta';
 import { trackPageView } from '../lib/analytics';
+import { usePageMeta } from './PageMetaProvider';
 
 interface SEOProps {
   title?: string;
@@ -15,7 +16,7 @@ interface SEOProps {
   image?: string;
   type?: 'website' | 'article' | 'product';
   url?: string;
-  /** false en estados de loading: setea title sin mandar page_view a GA */
+  /** @deprecated Ya no hace falta: no montes <SEO /> en loadings */
   track?: boolean;
 }
 
@@ -27,6 +28,8 @@ export function SEO({
   url,
   track: shouldTrack = true,
 }: SEOProps) {
+  const pageMeta = usePageMeta();
+  const setMeta = pageMeta?.setMeta;
   const pageTitle = title ? `${title} | Matilde Mercería` : DEFAULT_TITLE;
   const pageDescription = description || DEFAULT_DESCRIPTION;
   const pageImage = absoluteUrl(image);
@@ -37,9 +40,23 @@ export function SEO({
       : SITE_ORIGIN);
 
   useEffect(() => {
-    if (!shouldTrack || typeof window === 'undefined') return;
-    trackPageView(window.location.pathname + window.location.search, pageTitle);
-  }, [shouldTrack, pageTitle]);
+    if (!shouldTrack) return;
+
+    setMeta?.({
+      title: pageTitle,
+      description: pageDescription,
+      image: pageImage,
+      type,
+      url: canonicalUrl,
+    });
+
+    if (typeof window !== 'undefined') {
+      trackPageView(window.location.pathname + window.location.search, pageTitle);
+    }
+  }, [shouldTrack, pageTitle, pageDescription, pageImage, type, canonicalUrl, setMeta]);
+
+  // Fuera del catálogo (sin provider): Helmet local. Adentro: el provider ya pinta el head.
+  if (pageMeta) return null;
 
   return (
     <Helmet>

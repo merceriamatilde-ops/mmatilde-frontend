@@ -76,7 +76,10 @@ export function ContactoPage() {
   if (!config) {
     return (
       <>
-        <SEO title="Contacto" track={false} />
+        <SEO
+          title="Contacto"
+          description="Contactá a Matilde Mercería en Paraná. WhatsApp, email, dirección y horarios de atención."
+        />
         <div className="flex h-[50vh] items-center justify-center">
           <Spinner size={40} />
         </div>
