@@ -50,7 +50,7 @@ export function ProductoDetallePage() {
   if (error || !producto) return <NotFoundPage />;
 
   return (
-    <div className="container mx-auto max-w-7xl animate-fade-in space-y-8 px-4 py-6">
+    <div className="container mx-auto max-w-7xl animate-fade-in space-y-4 px-4 pt-3 pb-6 md:space-y-8 md:py-6">
       <SEO 
         title={producto.nombre} 
         description={productSeoDescription(producto.nombre, producto.descripcion, producto.categoria)}

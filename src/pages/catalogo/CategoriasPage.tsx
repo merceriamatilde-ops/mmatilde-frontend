@@ -22,9 +22,13 @@ export function CategoriasPage() {
   }, []);
 
   return (
-    <div className="container mx-auto max-w-7xl animate-fade-in px-4 py-8">
+    <div className="container mx-auto max-w-7xl animate-fade-in px-4 pt-3 pb-8 md:py-8">
       <SEO title="Categorías de mercería en Paraná" description="Explorá todas las categorías del catálogo de Matilde Mercería en Paraná: hilos, lanas, agujas, botones y más." />
-      <SectionHeading title="Todas las categorías" subtitle="Catálogo de mercería en Paraná" />
+      <SectionHeading
+        title="Todas las categorías"
+        subtitle="Catálogo de mercería en Paraná"
+        className="mb-4 md:mb-6"
+      />
 
       {loading ? (
         <div className="flex h-[40vh] items-center justify-center">

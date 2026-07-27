@@ -50,7 +50,7 @@ export function ColeccionDetallePage() {
   const currentCat = categorias.find((c: any) => c.slug === categoriaSlug);
 
   return (
-    <div className="container mx-auto max-w-7xl animate-fade-in space-y-7 px-4 py-6">
+    <div className="container mx-auto max-w-7xl animate-fade-in space-y-4 px-4 pt-3 pb-6 md:space-y-7 md:py-6">
       <SEO
         title={
           currentCat
