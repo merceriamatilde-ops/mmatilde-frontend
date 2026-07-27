@@ -15,16 +15,15 @@ export function HomeIntro() {
     <>
       <section className="bg-brand-800 text-white">
         <div className="container mx-auto max-w-5xl px-4 py-6 text-center md:py-10">
+          {/* H1 solo para SEO/a11y: el logo ya muestra la marca */}
+          <h1 className="sr-only">{brand} — Mercería en Paraná</h1>
           <img
             src="/logo-merceria.svg"
             alt=""
-            className="mx-auto mb-5 h-24 w-auto brightness-0 invert md:h-32"
+            className="mx-auto mb-4 h-24 w-auto brightness-0 invert md:mb-5 md:h-32"
             aria-hidden
           />
-          <h1 className="font-outfit text-[clamp(1.85rem,5vw,2.75rem)] font-bold tracking-tight text-white">
-            {brand}
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-base text-brand-100 md:text-lg">
+          <p className="mx-auto max-w-xl text-base text-brand-100 md:text-lg">
             Mercería en Paraná, Entre Ríos. Hilos, lanas, agujas y todo para costura, tejidos y
             manualidades.
           </p>
