@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Truck, Star, ExternalLink } from 'lucide-react';
+import { MapPin, Mail, Clock, Truck, Star, ExternalLink } from 'lucide-react';
 import ReactGA from 'react-ga4';
 import { api } from '../../api/client';
 import { Helmet } from 'react-helmet-async';
@@ -82,7 +82,6 @@ export function ContactoPage() {
   }
 
   const whatsappPhone = config.whatsapp || '+5493435190082';
-  const telefono = config.telefono || '0343 519-0082';
   const direccion = config.direccion || 'Av. Francisco Ramírez 1883, Paraná, Entre Ríos';
   const email = config.email || '';
   const horarios = parseHorarios(config.horarios);
@@ -112,7 +111,6 @@ export function ContactoPage() {
     name: config.nombre_negocio || 'Matilde Mercería',
     description: config.slogan || 'Mercería en Paraná, Entre Ríos',
     url: SITE_ORIGIN,
-    telephone: telefono.replace(/\s/g, ''),
     email: email || undefined,
     address: {
       '@type': 'PostalAddress',
@@ -127,7 +125,7 @@ export function ContactoPage() {
     <div className="animate-fade-in">
       <SEO
         title="Contacto"
-        description={`Contactá a ${config.nombre_negocio || 'Matilde Mercería'} en Paraná. WhatsApp, teléfono, dirección y horarios de atención.`}
+        description={`Contactá a ${config.nombre_negocio || 'Matilde Mercería'} en Paraná. WhatsApp, email, dirección y horarios de atención.`}
         url={`${SITE_ORIGIN}/contacto`}
       />
       <Helmet>
@@ -140,7 +138,7 @@ export function ContactoPage() {
             Contactanos
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-stone-600">
-            Estamos en Paraná. Escribinos por WhatsApp, llamanos o pasá por el local.
+            Estamos en Paraná. Escribinos por WhatsApp o email, o pasá por el local.
           </p>
         </div>
       </section>
@@ -149,7 +147,7 @@ export function ContactoPage() {
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
           {/* Columna izquierda */}
           <div className="space-y-8">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <a
                 href={`https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}`}
                 target="_blank"
@@ -161,15 +159,6 @@ export function ContactoPage() {
                   <WhatsAppIcon size={22} />
                 </span>
                 <span className="text-sm font-semibold text-stone-900">WhatsApp</span>
-              </a>
-              <a
-                href={`tel:${telefono.replace(/\s/g, '')}`}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-center transition-colors hover:border-brand-500 hover:bg-brand-50"
-              >
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-100 text-brand-800">
-                  <Phone size={20} />
-                </span>
-                <span className="text-sm font-semibold text-stone-900">{telefono}</span>
               </a>
               {email ? (
                 <a
