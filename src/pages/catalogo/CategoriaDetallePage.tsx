@@ -5,8 +5,14 @@ import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 
 import { SEO } from '../../components/SEO';
+import { JsonLd } from '../../components/JsonLd';
 import { NotFoundPage } from './NotFoundPage';
 import { ProductCard, ProductGrid } from '../../components/catalogo';
+import {
+  buildBreadcrumbLd,
+  categorySeoDescription,
+  categorySeoTitle,
+} from '../../lib/localSeo';
 
 export function CategoriaDetallePage() {
   const { slug } = useParams();
@@ -44,14 +50,29 @@ export function CategoriaDetallePage() {
   const subcategorias = data.subcategorias || [];
   const currentSub = subcategorias.find((s: any) => s.slug === subSlug);
   const banner: string | null = data.imagen || null;
+  const h1 = currentSub ? currentSub.nombre : categoriaName;
+  const seoTitle = categorySeoTitle(categoriaName, currentSub?.nombre);
+
+  const crumbs = [
+    { name: 'Inicio', path: '/' },
+    { name: 'Categorías', path: '/categorias' },
+    { name: categoriaName, path: `/categorias/${slug}` },
+  ];
+  if (currentSub) {
+    crumbs.push({
+      name: currentSub.nombre,
+      path: `/categorias/${slug}?sub=${currentSub.slug}`,
+    });
+  }
 
   return (
     <div className="container mx-auto max-w-7xl space-y-7 animate-fade-in px-4 py-6">
-      <SEO 
-        title={currentSub ? `${categoriaName} - ${currentSub.nombre}` : categoriaName} 
-        description={`Explorá todos los productos de la categoría ${categoriaName} en Matilde Mercería.`}
+      <SEO
+        title={seoTitle}
+        description={categorySeoDescription(categoriaName, currentSub?.nombre)}
         image={banner || productos.find((p: any) => p.imagenUrl)?.imagenUrl}
       />
+      <JsonLd data={buildBreadcrumbLd(crumbs)} />
 
       <nav className="flex items-center space-x-2 text-sm text-stone-500">
         <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>
@@ -75,25 +96,27 @@ export function CategoriaDetallePage() {
         <div className="relative overflow-hidden rounded-2xl bg-brand-900">
           <img
             src={banner}
-            alt={categoriaName}
+            alt={`${h1} en Paraná — Matilde Mercería`}
             className="h-40 w-full object-cover opacity-80 sm:h-52 md:h-64"
           />
           <div className="absolute inset-0 bg-brand-950/40" />
           <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
             <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.4rem)] font-bold tracking-tight text-white drop-shadow">
-              {currentSub ? currentSub.nombre : categoriaName}
+              {h1}
             </h1>
             <p className="mt-1 text-sm text-white/85">
-              {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
+              {productos.length} {productos.length === 1 ? 'producto' : 'productos'} en Paraná
             </p>
           </div>
         </div>
       ) : (
         <div>
-          <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-brand-800">
-            {currentSub ? currentSub.nombre : categoriaName}
+          <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.4rem)] font-bold tracking-tight text-brand-800">
+            {h1}
           </h1>
-          <p className="text-stone-500 mt-1">{productos.length} {productos.length === 1 ? 'producto' : 'productos'}</p>
+          <p className="mt-1 text-sm text-stone-500">
+            {productos.length} {productos.length === 1 ? 'producto' : 'productos'} · Matilde Mercería, Paraná
+          </p>
         </div>
       )}
 

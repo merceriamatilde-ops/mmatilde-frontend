@@ -6,6 +6,8 @@ import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
 import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
 import { trackViewItem, trackWhatsApp } from '../../lib/analytics';
+import { JsonLd } from '../../components/JsonLd';
+import { buildBreadcrumbLd, buildProductLd, productSeoDescription } from '../../lib/localSeo';
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
@@ -51,9 +53,27 @@ export function ProductoDetallePage() {
     <div className="container mx-auto max-w-7xl animate-fade-in space-y-8 px-4 py-6">
       <SEO 
         title={producto.nombre} 
-        description={producto.descripcion || `Consultá el precio y detalles de ${producto.nombre} en Matilde Mercería.`}
+        description={productSeoDescription(producto.nombre, producto.descripcion, producto.categoria)}
         image={producto.imagenes && producto.imagenes.length > 0 ? producto.imagenes[0] : undefined}
         type="product"
+      />
+      <JsonLd
+        data={[
+          buildBreadcrumbLd([
+            { name: 'Inicio', path: '/' },
+            ...(producto.categoriaSlug
+              ? [{ name: producto.categoria, path: `/categorias/${producto.categoriaSlug}` }]
+              : []),
+            { name: producto.nombre, path: `/producto/${producto.slug || slug}` },
+          ]),
+          buildProductLd({
+            nombre: producto.nombre,
+            slug: producto.slug || slug || '',
+            descripcion: producto.descripcion,
+            imagenes: producto.imagenes,
+            categoria: producto.categoria,
+          }),
+        ]}
       />
       <nav className="flex items-center space-x-2 text-sm text-stone-500">
         <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>

@@ -14,6 +14,8 @@ import {
   type ColeccionCardData,
   type ProductoCardData,
 } from '../../components/catalogo';
+import { JsonLd } from '../../components/JsonLd';
+import { buildLocalBusinessLd, buildWebSiteLd } from '../../lib/localSeo';
 
 // Columnas reales de ProductGrid por breakpoint (base 2, sm 3, md 4, lg 5, xl 6).
 function useGridColumns(): number {
@@ -37,6 +39,7 @@ function useGridColumns(): number {
 
 export function HomePage() {
   const cols = useGridColumns();
+  const [config, setConfig] = useState<Record<string, string>>({});
   const [data, setData] = useState<{
     categorias: CategoriaCardData[];
     productosRecientes: ProductoCardData[];
@@ -46,6 +49,10 @@ export function HomePage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    api.getConfiguracion().then(setConfig).catch(console.error);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +88,7 @@ export function HomePage() {
     return (
       <>
         <SEO />
+        <JsonLd data={[buildLocalBusinessLd(config), buildWebSiteLd()]} />
         <div className="flex h-[50vh] items-center justify-center">
           <Spinner size={40} />
         </div>
@@ -94,6 +102,7 @@ export function HomePage() {
     return (
       <div className="animate-fade-in">
         <SEO />
+        <JsonLd data={[buildLocalBusinessLd(config), buildWebSiteLd()]} />
         <section className="py-16">
           <div className="container mx-auto max-w-2xl px-4 text-center">
             <h1 className="font-outfit text-2xl font-bold text-stone-900">Matilde Mercería</h1>
@@ -125,6 +134,7 @@ export function HomePage() {
   return (
     <div className="animate-fade-in">
       <SEO />
+      <JsonLd data={[buildLocalBusinessLd(config), buildWebSiteLd()]} />
 
       <HomeIntro />
 
@@ -182,6 +192,19 @@ export function HomePage() {
               ))}
             </ProductGrid>
           )}
+        </div>
+      </section>
+
+      <section className="py-11">
+        <div className="container mx-auto max-w-3xl px-4 text-center">
+          <h2 className="font-outfit text-[clamp(1.35rem,3.5vw,1.75rem)] font-bold tracking-tight text-brand-800">
+            Tu mercería en Paraná
+          </h2>
+          <p className="mt-3 text-stone-600 leading-relaxed">
+            En Matilde Mercería trabajamos con hilos, lanas, agujas, botones, cierres y materiales
+            para costura y manualidades. Estamos en Av. Francisco Ramírez 1883, Paraná (Entre Ríos):
+            podés retirar en el local o pedirnos envío dentro de la ciudad.
+          </p>
         </div>
       </section>
     </div>

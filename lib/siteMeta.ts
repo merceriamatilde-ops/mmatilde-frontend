@@ -1,13 +1,16 @@
 export const SITE_ORIGIN = 'https://www.merceriamatilde.com';
 export const API_ORIGIN = 'https://api.merceriamatilde.com';
 
-export const DEFAULT_TITLE = 'Matilde Mercería | Paraná';
+export const DEFAULT_TITLE = 'Matilde Mercería | Mercería en Paraná';
 export const DEFAULT_DESCRIPTION =
-  'Tu mercería de confianza en Paraná. Todo lo que necesitás para tus proyectos de costura, manualidades y tejidos. Hilos, lanas, agujas y más.';
+  'Mercería en Paraná, Entre Ríos. Hilos, lanas, agujas, botones y todo para costura, tejidos y manualidades. Local en Av. Francisco Ramírez 1883.';
 
-/** WhatsApp/Facebook/LinkedIn/Twitter crawlers — no ejecutan JS. */
+/**
+ * Bots que no ejecutan (bien) el SPA: redes + crawlers de búsqueda.
+ * Les servimos HTML con title/description/canonical reales vía Edge.
+ */
 export const SOCIAL_BOT_RE =
-  /facebookexternalhit|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|pinterest/i;
+  /facebookexternalhit|whatsapp|twitterbot|linkedinbot|telegrambot|slackbot|discordbot|pinterest|googlebot|google-inspectiontool|storebot-google|bingbot|yandex|duckduckbot|baiduspider|applebot|semrushbot|ahrefsbot/i;
 
 export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-default.png`;
 
@@ -37,6 +40,8 @@ export type PageMeta = {
   image: string;
   url: string;
   type: 'website' | 'product';
+  /** Texto extra visible en el HTML para bots (opcional). */
+  bodyHtml?: string;
 };
 
 export function buildSocialHtml(meta: PageMeta): string {
@@ -45,14 +50,17 @@ export function buildSocialHtml(meta: PageMeta): string {
   const image = escapeHtml(meta.image);
   const url = escapeHtml(meta.url);
   const type = meta.type;
+  const extra = meta.bodyHtml || '';
 
   return `<!DOCTYPE html>
-<html lang="es">
+<html lang="es-AR">
 <head>
   <meta charset="utf-8" />
   <title>${title}</title>
   <meta name="description" content="${description}" />
+  <meta name="robots" content="index, follow" />
   <link rel="canonical" href="${url}" />
+  <meta property="og:locale" content="es_AR" />
   <meta property="og:type" content="${type}" />
   <meta property="og:url" content="${url}" />
   <meta property="og:title" content="${title}" />
@@ -65,7 +73,24 @@ export function buildSocialHtml(meta: PageMeta): string {
   <meta name="twitter:image" content="${image}" />
 </head>
 <body>
-  <p><a href="${url}">${title}</a></p>
+  <header>
+    <p><a href="${SITE_ORIGIN}/">Matilde Mercería</a> — mercería en Paraná, Entre Ríos</p>
+    <h1>${title}</h1>
+    <p>${description}</p>
+  </header>
+  <nav>
+    <ul>
+      <li><a href="${SITE_ORIGIN}/">Inicio</a></li>
+      <li><a href="${SITE_ORIGIN}/categorias">Categorías</a></li>
+      <li><a href="${SITE_ORIGIN}/contacto">Contacto</a></li>
+      <li><a href="${SITE_ORIGIN}/buscar">Buscar</a></li>
+    </ul>
+  </nav>
+  ${extra}
+  <footer>
+    <p>Av. Francisco Ramírez 1883, Paraná, Entre Ríos. Envíos en la ciudad y retiro en el local.</p>
+    <p><a href="${url}">Ver esta página en el sitio</a></p>
+  </footer>
 </body>
 </html>`;
 }

@@ -1,12 +1,20 @@
 import { rewrite, next } from '@vercel/edge';
 import { SOCIAL_BOT_RE } from './lib/siteMeta';
 
-/** Rutas públicas que pueden compartirse en WhatsApp / redes. */
+/** Rutas públicas indexables / compartibles. */
 const SHAREABLE =
-  /^\/$|^\/categorias(\/|$)|^\/colecciones(\/|$)|^\/producto(\/|$)|^\/buscar$/;
+  /^\/$|^\/categorias(\/|$)|^\/colecciones(\/|$)|^\/producto(\/|$)|^\/buscar$|^\/contacto$/;
 
 export const config = {
-  matcher: ['/', '/producto/:path*', '/categorias/:path*', '/colecciones/:path*', '/buscar'],
+  matcher: [
+    '/',
+    '/producto/:path*',
+    '/categorias',
+    '/categorias/:path*',
+    '/colecciones/:path*',
+    '/buscar',
+    '/contacto',
+  ],
 };
 
 export default function middleware(request: Request) {

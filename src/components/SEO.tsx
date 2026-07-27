@@ -16,7 +16,9 @@ interface SEOProps {
   image?: string;
   type?: 'website' | 'article' | 'product';
   url?: string;
-  /** @deprecated Ya no hace falta: no montes <SEO /> en loadings */
+  /** noindex para 404, etc. */
+  noindex?: boolean;
+  /** @deprecated */
   track?: boolean;
 }
 
@@ -26,6 +28,7 @@ export function SEO({
   image,
   type = 'website',
   url,
+  noindex = false,
   track: shouldTrack = true,
 }: SEOProps) {
   const pageMeta = usePageMeta();
@@ -55,16 +58,26 @@ export function SEO({
     }
   }, [shouldTrack, pageTitle, pageDescription, pageImage, type, canonicalUrl, setMeta]);
 
-  // Fuera del catálogo (sin provider): Helmet local. Adentro: el provider ya pinta el head.
-  if (pageMeta) return null;
+  const robots = noindex ? 'noindex, follow' : 'index, follow';
+
+  if (pageMeta) {
+    return (
+      <Helmet>
+        <meta name="robots" content={robots} />
+        <meta property="og:locale" content="es_AR" />
+      </Helmet>
+    );
+  }
 
   return (
     <Helmet>
       <title>{pageTitle}</title>
       <meta name="title" content={pageTitle} />
       <meta name="description" content={pageDescription} />
+      <meta name="robots" content={robots} />
       <link rel="canonical" href={canonicalUrl} />
 
+      <meta property="og:locale" content="es_AR" />
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={pageDescription} />
       <meta property="og:type" content={type} />

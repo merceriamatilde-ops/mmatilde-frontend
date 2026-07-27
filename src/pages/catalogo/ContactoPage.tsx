@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Mail, Clock, Truck, Star, ExternalLink } from 'lucide-react';
 import { api } from '../../api/client';
-import { Helmet } from 'react-helmet-async';
 import { SEO } from '../../components/SEO';
 import { Spinner } from '../../components/ui/Spinner';
 import { Select } from '../../components/ui/Select';
 import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
 import { SITE_ORIGIN } from '../../../lib/siteMeta';
 import { trackSocial, trackWhatsApp } from '../../lib/analytics';
+import { JsonLd } from '../../components/JsonLd';
+import { buildLocalBusinessLd } from '../../lib/localSeo';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -111,37 +112,21 @@ export function ContactoPage() {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const localBusinessJson = {
-    '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: config.nombre_negocio || 'Matilde Mercería',
-    description: config.slogan || 'Mercería en Paraná, Entre Ríos',
-    url: SITE_ORIGIN,
-    email: email || undefined,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: direccion,
-      addressLocality: 'Paraná',
-      addressRegion: 'Entre Ríos',
-      addressCountry: 'AR',
-    },
-  };
+  const localBusinessJson = buildLocalBusinessLd(config);
 
   return (
     <div className="animate-fade-in">
       <SEO
-        title="Contacto"
-        description={`Contactá a ${config.nombre_negocio || 'Matilde Mercería'} en Paraná. WhatsApp, email, dirección y horarios de atención.`}
+        title="Contacto — Mercería en Paraná"
+        description={`Contactá a ${config.nombre_negocio || 'Matilde Mercería'} en Paraná. WhatsApp, email, dirección en Av. Francisco Ramírez y horarios de atención.`}
         url={`${SITE_ORIGIN}/contacto`}
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(localBusinessJson)}</script>
-      </Helmet>
+      <JsonLd data={localBusinessJson} />
 
       <section className="border-b border-stone-200 bg-brand-50 py-10">
         <div className="container mx-auto max-w-5xl px-4 text-center">
           <h1 className="font-outfit text-[clamp(1.75rem,5vw,2.5rem)] font-bold tracking-tight text-brand-900">
-            Contactanos
+            Mercería en Paraná — Contacto
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-stone-600">
             Estamos en Paraná. Escribinos por WhatsApp o email, o pasá por el local.

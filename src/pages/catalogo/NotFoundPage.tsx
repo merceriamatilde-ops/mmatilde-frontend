@@ -5,7 +5,7 @@ import { SEO } from '../../components/SEO';
 export function NotFoundPage() {
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center animate-fade-in">
-      <SEO title="Página no encontrada" description="La página que estás buscando no existe." />
+      <SEO title="Página no encontrada" description="La página que estás buscando no existe." noindex />
 
       <div className="font-outfit text-[clamp(4rem,18vw,7rem)] font-extrabold leading-none text-brand-400" aria-hidden>
         404

@@ -5,6 +5,7 @@ import {
   absoluteUrl,
   buildSocialHtml,
   canonicalForPath,
+  escapeHtml,
   type PageMeta,
 } from '../lib/siteMeta';
 
@@ -24,8 +25,58 @@ async function fetchJson<T>(path: string): Promise<T | null> {
   }
 }
 
+function productListHtml(
+  items: { nombre?: string; name?: string; slug?: string }[],
+  basePath: string,
+): string {
+  if (!items.length) return '';
+  const lis = items
+    .slice(0, 40)
+    .map((p) => {
+      const name = escapeHtml(p.nombre || p.name || '');
+      const slug = p.slug ? escapeHtml(p.slug) : '';
+      const href = slug ? `${basePath}/${slug}` : '#';
+      return `<li><a href="${href}">${name}</a></li>`;
+    })
+    .join('');
+  return `<section><h2>Productos</h2><ul>${lis}</ul></section>`;
+}
+
 async function resolveMeta(pathname: string): Promise<PageMeta> {
   const url = canonicalForPath(pathname);
+
+  if (pathname === '/' || pathname === '') {
+    return {
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESCRIPTION,
+      image: absoluteUrl(null),
+      url,
+      type: 'website',
+      bodyHtml: `<section><h2>Mercería en Paraná</h2><p>Matilde Mercería — Av. Francisco Ramírez 1883, Paraná, Entre Ríos. Hilos, lanas, agujas, botones y materiales para costura y manualidades.</p></section>`,
+    };
+  }
+
+  if (pathname === '/contacto') {
+    return {
+      title: 'Contacto — Mercería en Paraná | Matilde Mercería',
+      description:
+        'Contactá a Matilde Mercería en Paraná. WhatsApp, email, dirección y horarios de atención.',
+      image: absoluteUrl(null),
+      url,
+      type: 'website',
+    };
+  }
+
+  if (pathname === '/categorias') {
+    return {
+      title: 'Categorías de mercería en Paraná | Matilde Mercería',
+      description:
+        'Explorá todas las categorías del catálogo de Matilde Mercería en Paraná: hilos, lanas, agujas, botones y más.',
+      image: absoluteUrl(null),
+      url,
+      type: 'website',
+    };
+  }
 
   const producto = pathname.match(/^\/producto\/([^/]+)\/?$/);
   if (producto) {
@@ -34,12 +85,15 @@ async function resolveMeta(pathname: string): Promise<PageMeta> {
       nombre: string;
       descripcion?: string | null;
       imagenes?: string[];
+      categoria?: string;
     }>(`/api/productos/${encodeURIComponent(slug)}`);
 
     if (p) {
       return {
         title: `${p.nombre} | Matilde Mercería`,
-        description: p.descripcion?.trim() || `Consultá ${p.nombre} en Matilde Mercería, Paraná.`,
+        description:
+          p.descripcion?.trim() ||
+          `${p.nombre} en Matilde Mercería, mercería en Paraná. Consultá precio y stock.`,
         image: absoluteUrl(p.imagenes?.[0]),
         url,
         type: 'product',
@@ -50,17 +104,23 @@ async function resolveMeta(pathname: string): Promise<PageMeta> {
   const categoria = pathname.match(/^\/categorias\/([^/]+)\/?$/);
   if (categoria) {
     const slug = decodeURIComponent(categoria[1]);
-    const cat = await fetchJson<{ nombre: string; productos?: { imagenUrl?: string }[] }>(
-      `/api/categorias/${encodeURIComponent(slug)}/productos`,
-    );
+    const cat = await fetchJson<{
+      nombre: string;
+      productos?: { nombre?: string; slug?: string; imagenUrl?: string }[];
+    }>(`/api/categorias/${encodeURIComponent(slug)}/productos`);
     if (cat) {
       const img = cat.productos?.find((p) => p.imagenUrl)?.imagenUrl;
+      const list = (cat.productos || []).map((p) => ({
+        nombre: p.nombre,
+        slug: p.slug,
+      }));
       return {
-        title: `${cat.nombre} | Matilde Mercería`,
-        description: `Explorá ${cat.nombre} en Matilde Mercería, Paraná.`,
+        title: `${cat.nombre} en Paraná | Matilde Mercería`,
+        description: `Comprá ${cat.nombre} en Matilde Mercería, tu mercería en Paraná. Retiro en el local o envíos en la ciudad.`,
         image: absoluteUrl(img),
         url,
         type: 'website',
+        bodyHtml: productListHtml(list, 'https://www.merceriamatilde.com/producto'),
       };
     }
   }
@@ -71,21 +131,26 @@ async function resolveMeta(pathname: string): Promise<PageMeta> {
     const col = await fetchJson<{
       nombre: string;
       descripcion?: string | null;
-      productos?: { imagenUrl?: string }[];
+      productos?: { nombre?: string; slug?: string; imagenUrl?: string }[];
     }>(`/api/catalogo/colecciones/${encodeURIComponent(slug)}`);
     if (col) {
       const img = col.productos?.find((p) => p.imagenUrl)?.imagenUrl;
       return {
-        title: `${col.nombre} | Matilde Mercería`,
-        description: col.descripcion?.trim() || `Colección ${col.nombre} en Matilde Mercería.`,
+        title: `${col.nombre} en Paraná | Matilde Mercería`,
+        description:
+          col.descripcion?.trim() ||
+          `Colección ${col.nombre} en Matilde Mercería, mercería en Paraná.`,
         image: absoluteUrl(img),
         url,
         type: 'website',
+        bodyHtml: productListHtml(
+          (col.productos || []).map((p) => ({ nombre: p.nombre, slug: p.slug })),
+          'https://www.merceriamatilde.com/producto',
+        ),
       };
     }
   }
 
-  // Home / buscar / fallback: usamos el logo, no la foto de un producto.
   return {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION,

@@ -4,8 +4,10 @@ import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 import { SEO } from '../../components/SEO';
+import { JsonLd } from '../../components/JsonLd';
 import { NotFoundPage } from './NotFoundPage';
 import { ProductCard, ProductGrid } from '../../components/catalogo';
+import { buildBreadcrumbLd } from '../../lib/localSeo';
 
 export function ColeccionDetallePage() {
   const { slug } = useParams();
@@ -50,9 +52,22 @@ export function ColeccionDetallePage() {
   return (
     <div className="container mx-auto max-w-7xl animate-fade-in space-y-7 px-4 py-6">
       <SEO
-        title={currentCat ? `${data.nombre} · ${currentCat.nombre}` : data.nombre}
-        description={data.descripcion || `Productos de ${data.nombre} en Matilde Mercería.`}
+        title={
+          currentCat
+            ? `${data.nombre} · ${currentCat.nombre} en Paraná`
+            : `${data.nombre} en Paraná`
+        }
+        description={
+          data.descripcion?.trim() ||
+          `Colección ${data.nombre} en Matilde Mercería, mercería en Paraná. Productos seleccionados para tu proyecto.`
+        }
         image={productos.find((p: any) => p.imagenUrl)?.imagenUrl}
+      />
+      <JsonLd
+        data={buildBreadcrumbLd([
+          { name: 'Inicio', path: '/' },
+          { name: data.nombre, path: `/colecciones/${slug}` },
+        ])}
       />
 
       <div>
