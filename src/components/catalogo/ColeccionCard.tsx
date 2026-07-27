@@ -1,6 +1,6 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import type { ColeccionCardData } from './types';
+import { trackSelectItem } from '../../lib/analytics';
 
 type ColeccionCardProps = {
   coleccion: ColeccionCardData;
@@ -12,6 +12,7 @@ export function ColeccionCard({ coleccion }: ColeccionCardProps) {
   return (
     <Link
       to={`/colecciones/${coleccion.slug}`}
+      onClick={() => trackSelectItem('coleccion', { nombre: coleccion.nombre, slug: coleccion.slug })}
       className="group flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white px-5 py-5 transition-all duration-150 hover:-translate-y-[3px] hover:border-brand-500 hover:shadow-[0_1px_2px_rgba(43,36,34,0.04),0_8px_24px_rgba(43,36,34,0.06)]"
     >
       <span

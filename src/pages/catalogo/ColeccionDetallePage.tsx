@@ -34,9 +34,12 @@ export function ColeccionDetallePage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Spinner size={40} />
-      </div>
+      <>
+        <SEO track={false} />
+        <div className="flex h-[50vh] items-center justify-center">
+          <Spinner size={40} />
+        </div>
+      </>
     );
   }
 
@@ -109,7 +112,7 @@ export function ColeccionDetallePage() {
       ) : (
         <ProductGrid>
           {productos.map((p: any) => (
-            <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Coleccion" />
+            <ProductCard key={p.id} producto={p} whatsappSource="coleccion" />
           ))}
         </ProductGrid>
       )}

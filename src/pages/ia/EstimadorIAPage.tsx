@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import ReactGA from 'react-ga4';
+import { trackIA, trackWhatsApp } from '../../lib/analytics';
 import {
   consultarIA,
   registrarConsultaEnBO,
@@ -163,13 +163,13 @@ export function EstimadorIAPage() {
 
       if (result.estado === 'listo') {
         setPaso('resultado');
-        ReactGA.event({ category: 'IA', action: 'Resultado_Completo' });
+        trackIA('resultado_completo');
         registrarConsultaEnBO(ctx, result).catch((err) => {
           console.warn('[IA] No se pudo guardar la consulta en el BO:', err);
         });
       } else {
         setPaso('refinando');
-        ReactGA.event({ category: 'IA', action: 'Refinamiento' });
+        trackIA('refinamiento');
       }
       return result;
     } catch (err) {
@@ -198,7 +198,7 @@ export function EstimadorIAPage() {
       paso_refinamiento: 0,
     };
     setContexto(ctx);
-    ReactGA.event({ category: 'IA', action: 'Analizar_Inicio', label: imageFile ? 'con_foto' : 'solo_texto' });
+    trackIA('analizar_inicio', { input: imageFile ? 'con_foto' : 'solo_texto' });
     try {
       await llamarIA(ctx, imageFile);
     } catch {
@@ -267,7 +267,7 @@ export function EstimadorIAPage() {
     setError(null);
     quitarImagen();
     sessionStorage.removeItem(SESSION_KEY);
-    ReactGA.event({ category: 'IA', action: 'Nuevo_Proyecto' });
+    trackIA('nuevo_proyecto');
   };
 
   const storeUrl = getStoreUrl();
@@ -646,7 +646,7 @@ export function EstimadorIAPage() {
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => ReactGA.event({ category: 'IA', action: 'WhatsApp_Resultado' })}
+                onClick={() => trackWhatsApp('ia_resultado')}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-green-600 text-white text-lg font-semibold hover:bg-green-700 active:bg-green-800 transition-colors shadow-md"
               >
                 <MessageCircle size={22} />

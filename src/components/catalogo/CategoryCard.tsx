@@ -1,6 +1,6 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import type { CategoriaCardData } from './types';
+import { trackSelectItem } from '../../lib/analytics';
 
 type CategoryCardProps = {
   categoria: CategoriaCardData;
@@ -13,6 +13,7 @@ export function CategoryCard({ categoria }: CategoryCardProps) {
   return (
     <Link
       to={`/categorias/${categoria.slug}`}
+      onClick={() => trackSelectItem('categoria', { nombre: categoria.nombre, slug: categoria.slug })}
       className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white transition-colors duration-150 hover:border-brand-500"
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-brand-50">

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { MapPin, Mail, Clock, Truck, Star, ExternalLink } from 'lucide-react';
-import ReactGA from 'react-ga4';
 import { api } from '../../api/client';
 import { Helmet } from 'react-helmet-async';
 import { SEO } from '../../components/SEO';
@@ -8,6 +7,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Select } from '../../components/ui/Select';
 import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
 import { SITE_ORIGIN } from '../../../lib/siteMeta';
+import { trackSocial, trackWhatsApp } from '../../lib/analytics';
 
 const DIAS_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -75,9 +75,12 @@ export function ContactoPage() {
 
   if (!config) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Spinner size={40} />
-      </div>
+      <>
+        <SEO title="Contacto" track={false} />
+        <div className="flex h-[50vh] items-center justify-center">
+          <Spinner size={40} />
+        </div>
+      </>
     );
   }
 
@@ -101,7 +104,7 @@ export function ContactoPage() {
     e.preventDefault();
     const text = buildWaMessage();
     const url = `https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(text)}`;
-    ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Contacto' });
+    trackWhatsApp('contacto_form');
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -152,7 +155,7 @@ export function ContactoPage() {
                 href={`https://wa.me/${whatsappPhone.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Click_Contacto_Card' })}
+                onClick={() => trackWhatsApp('contacto_card')}
                 className="flex flex-col items-center gap-2 rounded-2xl border border-stone-200 bg-white p-4 text-center transition-colors hover:border-[#25D366] hover:bg-[#25D366]/5"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white">
@@ -236,7 +239,7 @@ export function ContactoPage() {
                       href={config.instagram_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Instagram_Contacto' })}
+                      onClick={() => trackSocial('instagram', 'contacto')}
                       className="inline-flex items-center gap-2 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-brand-500 hover:text-brand-800"
                     >
                       Instagram
@@ -248,7 +251,7 @@ export function ContactoPage() {
                       href={config.facebook_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Facebook_Contacto' })}
+                      onClick={() => trackSocial('facebook', 'contacto')}
                       className="inline-flex items-center gap-2 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-brand-500 hover:text-brand-800"
                     >
                       Facebook
@@ -330,7 +333,7 @@ export function ContactoPage() {
                 href={reviewLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => ReactGA.event({ category: 'Social', action: 'Click_GoogleReview' })}
+                onClick={() => trackSocial('google_review', 'contacto')}
                 className="flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100"
               >
                 <Star size={18} className="fill-amber-500 text-amber-500" />

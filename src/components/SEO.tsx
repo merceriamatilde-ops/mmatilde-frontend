@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
   DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
   SITE_ORIGIN,
   absoluteUrl,
   canonicalForPath,
 } from '../../lib/siteMeta';
+import { trackPageView } from '../lib/analytics';
 
 interface SEOProps {
   title?: string;
@@ -13,6 +15,8 @@ interface SEOProps {
   image?: string;
   type?: 'website' | 'article' | 'product';
   url?: string;
+  /** false en estados de loading: setea title sin mandar page_view a GA */
+  track?: boolean;
 }
 
 export function SEO({
@@ -21,9 +25,9 @@ export function SEO({
   image,
   type = 'website',
   url,
+  track: shouldTrack = true,
 }: SEOProps) {
-  const siteName = 'Matilde Mercería | Paraná';
-  const pageTitle = title ? `${title} | Matilde Mercería` : siteName;
+  const pageTitle = title ? `${title} | Matilde Mercería` : DEFAULT_TITLE;
   const pageDescription = description || DEFAULT_DESCRIPTION;
   const pageImage = absoluteUrl(image);
   const canonicalUrl =
@@ -31,6 +35,11 @@ export function SEO({
     (typeof window !== 'undefined'
       ? canonicalForPath(window.location.pathname)
       : SITE_ORIGIN);
+
+  useEffect(() => {
+    if (!shouldTrack || typeof window === 'undefined') return;
+    trackPageView(window.location.pathname + window.location.search, pageTitle);
+  }, [shouldTrack, pageTitle]);
 
   return (
     <Helmet>

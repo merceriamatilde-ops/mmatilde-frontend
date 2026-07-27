@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import ReactGA from 'react-ga4';
 import { api } from '../../api/client';
+import { trackBannerClick } from '../../lib/analytics';
 
 interface Banner {
   id: number;
@@ -47,8 +47,7 @@ function BannerImage({ banner }: { banner: Banner }) {
 }
 
 function BannerLink({ banner, children }: { banner: Banner; children: React.ReactNode }) {
-  const onClick = () =>
-    ReactGA.event({ category: 'Banner', action: 'Click', label: banner.titulo });
+  const onClick = () => trackBannerClick(banner.titulo, banner.id);
 
   if (!banner.href) {
     return <div className="block overflow-hidden rounded-xl">{children}</div>;

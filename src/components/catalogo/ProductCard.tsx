@@ -1,16 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import ReactGA from 'react-ga4';
 import { whatsappUrl } from '../../lib/utils';
+import { trackWhatsApp } from '../../lib/analytics';
 import { WhatsAppIcon } from '../ui/WhatsAppIcon';
 import type { ProductoCardData } from './types';
 
 type ProductCardProps = {
   producto: ProductoCardData;
-  whatsappAction?: string;
+  /** Origen del click WA: home | categoria | coleccion | busqueda | catalogo */
+  whatsappSource?: string;
 };
 
-export function ProductCard({ producto, whatsappAction = 'Consultar_Catalogo' }: ProductCardProps) {
+export function ProductCard({ producto, whatsappSource = 'catalogo' }: ProductCardProps) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-stone-200 bg-white transition-[box-shadow,border-color] duration-200 hover:border-stone-300 hover:shadow-[0_2px_12px_rgba(43,36,34,0.07)]">
       <Link
@@ -49,7 +50,10 @@ export function ProductCard({ producto, whatsappAction = 'Consultar_Catalogo' }:
           target="_blank"
           rel="noopener noreferrer"
           onClick={() =>
-            ReactGA.event({ category: 'WhatsApp', action: whatsappAction, label: producto.nombre })
+            trackWhatsApp(whatsappSource, {
+              item_name: producto.nombre,
+              item_slug: producto.slug,
+            })
           }
           className="mt-auto inline-flex w-full items-center justify-center gap-1 rounded-md bg-[#25D366] px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[#1da851] sm:py-1.5 sm:text-xs"
         >

@@ -78,9 +78,12 @@ export function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Spinner size={40} />
-      </div>
+      <>
+        <SEO track={false} />
+        <div className="flex h-[50vh] items-center justify-center">
+          <Spinner size={40} />
+        </div>
+      </>
     );
   }
 
@@ -174,7 +177,7 @@ export function HomePage() {
                     Math.floor(data.productosRecientes.length / cols) * cols,
                   )
               ).map((p) => (
-                <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Home" />
+                <ProductCard key={p.id} producto={p} whatsappSource="home" />
               ))}
             </ProductGrid>
           )}

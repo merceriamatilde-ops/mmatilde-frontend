@@ -30,7 +30,17 @@ export function CategoriaDetallePage() {
     });
   }, [slug, subSlug]);
 
-  if (loading) return <div className="flex h-[50vh] items-center justify-center"><Spinner size={40} /></div>;
+  if (loading) {
+    return (
+      <>
+        {/* Title estable mientras carga; page_view lo manda el SEO final */}
+        <SEO track={false} />
+        <div className="flex h-[50vh] items-center justify-center">
+          <Spinner size={40} />
+        </div>
+      </>
+    );
+  }
   if (error || !data) return <NotFoundPage />;
 
   const categoriaName = data.nombre;
@@ -121,7 +131,7 @@ export function CategoriaDetallePage() {
 
       <ProductGrid>
         {productos.map((p: any) => (
-          <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Categoria" />
+          <ProductCard key={p.id} producto={p} whatsappSource="categoria" />
         ))}
         {productos.length === 0 && (
           <p className="col-span-full py-12 text-center text-stone-500">No hay productos en esta categoría.</p>

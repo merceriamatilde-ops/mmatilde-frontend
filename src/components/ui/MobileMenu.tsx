@@ -4,7 +4,7 @@ import { X, Search, ChevronDown, ChevronRight, MessageCircle, Camera } from 'luc
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Logo } from './Logo';
-import ReactGA from 'react-ga4';
+import { trackSocial, trackWhatsApp } from '../../lib/analytics';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -156,7 +156,7 @@ export function MobileMenu({ isOpen, onClose, config }: MobileMenuProps) {
                 href={whatsappUrl(config.whatsapp, "Hola! Vengo desde la tienda online")}
                 target="_blank" 
                 rel="noreferrer"
-                onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_MobileMenu' })}
+                onClick={() => trackWhatsApp('mobile_menu')}
                 className="flex items-center text-brand-800"
               >
                 <MessageCircle className="w-5 h-5 mr-3" />
@@ -168,7 +168,7 @@ export function MobileMenu({ isOpen, onClose, config }: MobileMenuProps) {
                 href={config.instagram}
                 target="_blank" 
                 rel="noreferrer"
-                onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Instagram_Mobile' })}
+                onClick={() => trackSocial('instagram', 'mobile_menu')}
                 className="flex items-center text-brand-800"
               >
                 <Camera className="w-5 h-5 mr-3" />

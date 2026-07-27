@@ -4,6 +4,8 @@ import { Search } from 'lucide-react';
 import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 import { ProductCard, ProductGrid } from '../../components/catalogo';
+import { SEO } from '../../components/SEO';
+import { trackSearch } from '../../lib/analytics';
 
 export function BuscarPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,13 +17,17 @@ export function BuscarPage() {
   useEffect(() => {
     if (query.length >= 3) {
       setLoading(true);
-      api.buscarProductos(query).then(res => {
-        setProductos(res);
-        setLoading(false);
-      }).catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+      api
+        .buscarProductos(query)
+        .then((res) => {
+          setProductos(res);
+          trackSearch(query, res?.length ?? 0);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoading(false);
+        });
     } else {
       setProductos([]);
     }
@@ -36,7 +42,10 @@ export function BuscarPage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Banda gris full-bleed con el buscador */}
+      <SEO
+        title={query ? `Buscar: ${query}` : 'Buscar'}
+        description="Buscá productos en el catálogo de Matilde Mercería."
+      />
       <section className="border-b border-stone-200 bg-stone-50 py-10">
         <div className="container mx-auto max-w-7xl px-4">
           <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-brand-800">
@@ -64,19 +73,25 @@ export function BuscarPage() {
 
       <section className="container mx-auto max-w-7xl px-4 py-8">
         {loading ? (
-          <div className="flex justify-center py-12"><Spinner size={40} /></div>
+          <div className="flex justify-center py-12">
+            <Spinner size={40} />
+          </div>
         ) : query && query.length < 3 ? (
           <p className="py-12 text-center text-stone-500">Ingresá al menos 3 caracteres para buscar.</p>
         ) : query && productos.length === 0 ? (
-          <p className="py-12 text-center text-stone-500">No se encontraron productos para "{query}".</p>
+          <p className="py-12 text-center text-stone-500">
+            No se encontraron productos para &quot;{query}&quot;.
+          </p>
         ) : productos.length > 0 ? (
           <div className="space-y-5">
             <p className="text-stone-600">
-              Mostrando resultados para <strong className="font-semibold text-stone-900">"{query}"</strong> · {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
+              Mostrando resultados para{' '}
+              <strong className="font-semibold text-stone-900">&quot;{query}&quot;</strong> ·{' '}
+              {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
             </p>
             <ProductGrid>
               {productos.map((p) => (
-                <ProductCard key={p.id} producto={p} whatsappAction="Consultar_Busqueda" />
+                <ProductCard key={p.id} producto={p} whatsappSource="busqueda" />
               ))}
             </ProductGrid>
           </div>

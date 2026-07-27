@@ -5,7 +5,7 @@ import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
 import { WhatsAppIcon } from '../../components/ui/WhatsAppIcon';
-import ReactGA from 'react-ga4';
+import { trackViewItem, trackWhatsApp } from '../../lib/analytics';
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
@@ -19,17 +19,35 @@ export function ProductoDetallePage() {
 
   useEffect(() => {
     if (!slug) return;
-    api.getProducto(slug).then(res => {
-      setProducto(res);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setError(true);
-      setLoading(false);
-    });
+    api
+      .getProducto(slug)
+      .then((res) => {
+        setProducto(res);
+        trackViewItem({
+          id: res.id,
+          nombre: res.nombre,
+          slug: res.slug || slug,
+          categoria: res.categoria,
+        });
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(true);
+        setLoading(false);
+      });
   }, [slug]);
 
-  if (loading) return <div className="flex h-[50vh] items-center justify-center"><Spinner size={40} /></div>;
+  if (loading) {
+    return (
+      <>
+        <SEO track={false} />
+        <div className="flex h-[50vh] items-center justify-center">
+          <Spinner size={40} />
+        </div>
+      </>
+    );
+  }
   if (error || !producto) return <NotFoundPage />;
 
   return (
@@ -160,7 +178,12 @@ export function ProductoDetallePage() {
               href={whatsappUrl(producto.nombre)}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Producto', label: producto.nombre })}
+              onClick={() =>
+                trackWhatsApp('producto', {
+                  item_name: producto.nombre,
+                  item_slug: producto.slug || slug,
+                })
+              }
               className="inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-7 py-4 text-lg font-semibold text-white shadow-[0_8px_20px_rgba(37,211,102,0.28)] transition-colors hover:bg-[#1da851] active:translate-y-px"
             >
               <WhatsAppIcon size={24} />

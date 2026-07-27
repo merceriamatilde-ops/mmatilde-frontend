@@ -1,7 +1,7 @@
 export const SITE_ORIGIN = 'https://www.merceriamatilde.com';
 export const API_ORIGIN = 'https://api.merceriamatilde.com';
 
-export const DEFAULT_TITLE = 'Matilde Mercería | Paraná, Entre Ríos';
+export const DEFAULT_TITLE = 'Matilde Mercería | Paraná';
 export const DEFAULT_DESCRIPTION =
   'Tu mercería de confianza en Paraná. Todo lo que necesitás para tus proyectos de costura, manualidades y tejidos. Hilos, lanas, agujas y más.';
 

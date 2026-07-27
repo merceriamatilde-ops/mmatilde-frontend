@@ -2,16 +2,20 @@ import React, { useMemo } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { HelmetProvider } from 'react-helmet-async';
-import ReactGA from 'react-ga4';
 
 import { AuthProvider } from './hooks/useAuth';
 import { PermisosProvider } from './hooks/usePermisosModulos';
+import { trackPageViewFallback } from './lib/analytics';
 
 function RouteTracker() {
   const location = useLocation();
   React.useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: location.pathname + location.search });
-  }, [location]);
+    // Fallback por si la ruta no monta <SEO /> (BO / IA / páginas sueltas)
+    const t = window.setTimeout(() => {
+      trackPageViewFallback(location.pathname + location.search);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [location.pathname, location.search]);
   return null;
 }
 

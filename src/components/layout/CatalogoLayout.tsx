@@ -6,7 +6,7 @@ import { api } from '../../api/client';
 import { Logo } from '../ui/Logo';
 import { MobileMenu } from '../ui/MobileMenu';
 import { WhatsAppIcon } from '../ui/WhatsAppIcon';
-import ReactGA from 'react-ga4';
+import { trackSocial, trackWhatsApp } from '../../lib/analytics';
 
 export function CatalogoLayout() {
   const [config, setConfig] = useState<Record<string, string>>({});
@@ -193,7 +193,7 @@ export function CatalogoLayout() {
                 href={whatsappUrl(undefined, whatsappPhone)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_Footer' })}
+                onClick={() => trackWhatsApp('footer')}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-brand-100 transition-colors hover:bg-white/25 hover:text-white"
                 aria-label="WhatsApp"
                 title="WhatsApp"
@@ -205,7 +205,7 @@ export function CatalogoLayout() {
                   href={config.instagram_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Instagram' })}
+                  onClick={() => trackSocial('instagram', 'footer')}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-brand-100 transition-colors hover:bg-white/25 hover:text-white"
                   aria-label="Instagram"
                   title="Instagram"
@@ -218,7 +218,7 @@ export function CatalogoLayout() {
                   href={config.facebook_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => ReactGA.event({ category: 'Social', action: 'Click_Facebook' })}
+                  onClick={() => trackSocial('facebook', 'footer')}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-brand-100 transition-colors hover:bg-white/25 hover:text-white"
                   aria-label="Facebook"
                   title="Facebook"
@@ -265,7 +265,7 @@ export function CatalogoLayout() {
         href={whatsappUrl(undefined, whatsappPhone)}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={() => ReactGA.event({ category: 'WhatsApp', action: 'Consultar_FAB' })}
+        onClick={() => trackWhatsApp('fab')}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
         aria-label="Contactar por WhatsApp"
       >
