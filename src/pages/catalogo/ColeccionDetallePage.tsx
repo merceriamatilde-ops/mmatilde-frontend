@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 import { SEO } from '../../components/SEO';
 import { JsonLd } from '../../components/JsonLd';
 import { NotFoundPage } from './NotFoundPage';
-import { ProductCard, ProductGrid } from '../../components/catalogo';
+import { Breadcrumb, BreadcrumbSep, ProductCard, ProductGrid } from '../../components/catalogo';
 import { buildBreadcrumbLd } from '../../lib/localSeo';
 
 export function ColeccionDetallePage() {
@@ -71,13 +70,13 @@ export function ColeccionDetallePage() {
       />
 
       <div>
-        <nav className="mb-4 flex items-center space-x-2 text-sm text-stone-500">
+        <Breadcrumb className="mb-4">
           <Link to="/" className="text-brand-800 transition-colors">
             Inicio
           </Link>
-          <ChevronRight size={16} />
-          <span className="truncate font-medium text-stone-900">{data.nombre}</span>
-        </nav>
+          <BreadcrumbSep />
+          <span className="font-medium text-stone-900">{data.nombre}</span>
+        </Breadcrumb>
 
         <span className="mb-3 inline-flex h-2 w-12 rounded-full" style={{ backgroundColor: accent }} />
         <h1 className="font-outfit text-[clamp(1.6rem,5vw,2.2rem)] font-bold tracking-tight text-brand-800">

@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { Spinner } from '../../components/ui/Spinner';
 
 import { SEO } from '../../components/SEO';
 import { JsonLd } from '../../components/JsonLd';
 import { NotFoundPage } from './NotFoundPage';
-import { ProductCard, ProductGrid } from '../../components/catalogo';
+import { Breadcrumb, BreadcrumbSep, ProductCard, ProductGrid } from '../../components/catalogo';
 import {
   buildBreadcrumbLd,
   categorySeoDescription,
@@ -74,23 +73,23 @@ export function CategoriaDetallePage() {
       />
       <JsonLd data={buildBreadcrumbLd(crumbs)} />
 
-      <nav className="flex items-center space-x-2 text-sm text-stone-500">
+      <Breadcrumb>
         <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>
-        <ChevronRight size={16} />
+        <BreadcrumbSep />
         <Link to="/categorias" className="text-brand-800 transition-colors">Categorías</Link>
-        <ChevronRight size={16} />
+        <BreadcrumbSep />
         {currentSub ? (
           <>
-            <button onClick={() => setSearchParams({})} className="text-brand-800 transition-colors hover:underline">
+            <button type="button" onClick={() => setSearchParams({})} className="text-brand-800 transition-colors hover:underline">
               {categoriaName}
             </button>
-            <ChevronRight size={16} />
-            <span className="text-stone-900 font-medium truncate">{currentSub.nombre}</span>
+            <BreadcrumbSep />
+            <span className="font-medium text-stone-900">{currentSub.nombre}</span>
           </>
         ) : (
-          <span className="text-stone-900 font-medium truncate">{categoriaName}</span>
+          <span className="font-medium text-stone-900">{categoriaName}</span>
         )}
-      </nav>
+      </Breadcrumb>
 
       {banner ? (
         <div className="relative overflow-hidden rounded-2xl bg-brand-900">

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import { api } from '../../api/client';
 import { whatsappUrl } from '../../lib/utils';
 import { Spinner } from '../../components/ui/Spinner';
@@ -11,7 +10,7 @@ import { buildBreadcrumbLd, buildProductLd, productSeoDescription } from '../../
 
 import { SEO } from '../../components/SEO';
 import { NotFoundPage } from './NotFoundPage';
-import { SectionHeading } from '../../components/catalogo';
+import { Breadcrumb, BreadcrumbSep, SectionHeading } from '../../components/catalogo';
 
 export function ProductoDetallePage() {
   const { slug } = useParams();
@@ -75,19 +74,19 @@ export function ProductoDetallePage() {
           }),
         ]}
       />
-      <nav className="flex items-center space-x-2 text-sm text-stone-500">
+      <Breadcrumb>
         <Link to="/" className="text-brand-800 transition-colors">Inicio</Link>
-        <ChevronRight size={16} />
+        <BreadcrumbSep />
         <Link to={`/categorias/${producto.categoriaSlug}`} className="text-brand-800 transition-colors">{producto.categoria}</Link>
         {producto.subcategoria && (
           <>
-            <ChevronRight size={16} />
+            <BreadcrumbSep />
             <Link to={`/categorias/${producto.categoriaSlug}?sub=${producto.subcategoriaSlug}`} className="text-brand-800 transition-colors">{producto.subcategoria}</Link>
           </>
         )}
-        <ChevronRight size={16} />
-        <span className="text-stone-900 font-medium truncate">{producto.nombre}</span>
-      </nav>
+        <BreadcrumbSep />
+        <span className="font-medium text-stone-900">{producto.nombre}</span>
+      </Breadcrumb>
 
       <div className="grid gap-7 md:grid-cols-2 md:items-start md:gap-11">
         <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 p-6">
