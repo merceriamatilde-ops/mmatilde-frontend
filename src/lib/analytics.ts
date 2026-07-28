@@ -82,6 +82,11 @@ export function trackIA(action: string, extra?: Params) {
 export function initAnalytics() {
   const id = import.meta.env.VITE_GA_MEASUREMENT_ID;
   if (!id) return;
+  // BO / IA: no contaminar GA4 del catálogo público
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.startsWith('bo.') || host.startsWith('ia.')) return;
+  }
   ReactGA.initialize(id, {
     gtagOptions: {
       send_page_view: false, // lo mandamos nosotros en el SPA

@@ -1,27 +1,11 @@
 import React, { useMemo } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { HelmetProvider } from 'react-helmet-async';
 
 import { AuthProvider } from './hooks/useAuth';
 import { PermisosProvider } from './hooks/usePermisosModulos';
-import { trackPageViewFallback } from './lib/analytics';
-
-function RouteTracker() {
-  const location = useLocation();
-  React.useEffect(() => {
-    const host = window.location.hostname;
-    // Catálogo público: el <SEO /> manda el page_view con el title final.
-    // Fallback solo para BO / IA (sin SEO).
-    if (!host.startsWith('bo.') && !host.startsWith('ia.')) return;
-
-    const t = window.setTimeout(() => {
-      trackPageViewFallback(location.pathname + location.search);
-    }, 500);
-    return () => clearTimeout(t);
-  }, [location.pathname, location.search]);
-  return null;
-}
+import { InternalNoIndex } from './components/InternalNoIndex';
 
 // Layouts
 import { CatalogoLayout } from './components/layout/CatalogoLayout';
@@ -73,7 +57,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <PermisosProvider>
-          <RouteTracker />
+          {(isBackoffice || isIaSubdomain) && <InternalNoIndex />}
           <Routes>
             {isIaSubdomain ? (
               // --- IA ROUTES ---

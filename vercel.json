@@ -1,4 +1,16 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "bo.merceriamatilde.com" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "ia.merceriamatilde.com" }],
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
