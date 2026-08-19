@@ -559,6 +559,10 @@ export function EstimadorIAPage() {
               </div>
             )}
 
+            <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 text-sm text-stone-700 leading-relaxed">
+              Las cantidades son un rango (±30–40%). De una foto no se ve la tensión del punto ni el talle exacto; en el local lo afinamos con ovillos de 50g o 100g.
+            </div>
+
             <div className="bg-white rounded-2xl border-2 border-brand-200 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="text-brand-500" size={20} />
@@ -597,6 +601,21 @@ export function EstimadorIAPage() {
                   {respuesta.resultado.nota}
                 </p>
               )}
+
+              {(respuesta.resultado.supuestos?.length || respuesta.resultado.chequeos?.length) ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(respuesta.resultado.supuestos || []).map((s) => (
+                    <span key={`s-${s}`} className="rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">
+                      Supuesto: {s}
+                    </span>
+                  ))}
+                  {(respuesta.resultado.chequeos || []).map((c) => (
+                    <span key={`c-${c}`} className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             {/* Productos sugeridos */}

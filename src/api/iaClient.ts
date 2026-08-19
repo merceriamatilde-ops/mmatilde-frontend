@@ -34,6 +34,8 @@ export interface ResultadoIA {
   insumos: InsumoEstimado[];
   nota: string;
   completitud?: 'exacta' | 'aproximada';
+  supuestos?: string[];
+  chequeos?: string[];
 }
 
 export interface ProductoSugerido {
