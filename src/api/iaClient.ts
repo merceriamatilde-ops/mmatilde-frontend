@@ -65,6 +65,7 @@ export interface ConsultaResponse {
   preguntas: PreguntaIA[];
   resultado: ResultadoIA | null;
   productos_sugeridos: ProductoSugerido[];
+  imagen_url?: string | null;
 }
 
 const PROGRESO_VACIO: ProgresoConsulta = {
@@ -177,6 +178,7 @@ export async function consultarIA(
         imagen_url: p.imagen_url ?? p.imagenUrl ?? null,
         termino_relacionado: p.termino_relacionado,
       })),
+      imagen_url: data.imagen_url ?? data.imagenUrl ?? null,
     };
   } finally {
     clearTimeout(timeout);

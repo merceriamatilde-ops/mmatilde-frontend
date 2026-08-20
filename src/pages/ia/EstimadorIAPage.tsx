@@ -163,10 +163,17 @@ export function EstimadorIAPage() {
       if (img && !ctx.imagen_url && esPrimerPaso) {
         const url = await subirFotoConsultaIA(img);
         ctxConFoto = { ...ctx, tuvo_foto: true, imagen_url: url || undefined };
-      } else if (img || ctx.imagen_url) {
-        ctxConFoto = { ...ctx, tuvo_foto: true };
+      } else if (img || ctx.imagen_url || ctx.tuvo_foto) {
+        ctxConFoto = { ...ctx, tuvo_foto: true, imagen_url: ctx.imagen_url };
       }
       const result = await consultarIA(ctxConFoto, esPrimerPaso ? img : null);
+      const imagenUrl = result.imagen_url || ctxConFoto.imagen_url;
+      ctxConFoto = {
+        ...ctxConFoto,
+        tuvo_foto: Boolean(img || ctxConFoto.tuvo_foto || imagenUrl),
+        imagen_url: imagenUrl || undefined,
+      };
+      setContexto(ctxConFoto);
       setRespuesta(result);
       setSeleccionActual({});
 
