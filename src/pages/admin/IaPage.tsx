@@ -16,6 +16,7 @@ type IaConsulta = {
   contextoJson: string;
   resultadoJson: string;
   productosJson?: string;
+  imagenUrl?: string;
   evaluacion?: string;
   notaCorreccion?: string;
   correccionEsperada?: string;
@@ -65,6 +66,9 @@ type ContextoConsulta = {
   descripcion_inicial?: string;
   respuestas?: { pregunta?: string; respuesta?: string }[];
   notas_adicionales?: string[];
+  tuvo_foto?: boolean;
+  imagen_url?: string;
+  resumen?: { proyecto?: string; tecnica?: string | null; detalles?: string[] };
 };
 
 function buildDescripcionEjemplo(
@@ -274,12 +278,13 @@ export function IaPage() {
       return;
     }
     const fb = getFeedback(consulta.id);
+    const ctx = parseJsonSafe<ContextoConsulta>(consulta.contextoJson, {});
     setNuevoEjemplo({
       titulo: consulta.proyecto || 'Ejemplo desde consulta',
       disparadores: buildDisparadoresEjemplo(consulta, fb),
       descripcion: buildDescripcionEjemplo(consulta, fb),
       respuestaJson: buildRespuestaEjemplo(consulta, fb),
-      imagenUrl: undefined,
+      imagenUrl: consulta.imagenUrl || ctx.imagen_url,
     });
     setOrigenConsultaId(consulta.id);
     setTab('entrenamiento');
@@ -470,10 +475,16 @@ export function IaPage() {
               </TableHeader>
               <TableBody>
                 {consultas.map((c) => {
+                  const ctx = parseJsonSafe<ContextoConsulta>(c.contextoJson, {});
+                  const fotoUrl = c.imagenUrl || ctx.imagen_url;
+                  const pedido = (ctx.descripcion_inicial || '').trim();
+                  const respuestas = (ctx.respuestas || []).filter((r) => r.pregunta || r.respuesta);
                   const resultado = parseJsonSafe<{
                     tecnica_detectada?: string;
                     insumos?: { descripcion: string }[];
                     nota?: string;
+                    supuestos?: string[];
+                    chequeos?: string[];
                   }>(c.resultadoJson, {});
                   const expanded = expandedId === c.id;
                   const fb = getFeedback(c.id);
@@ -484,7 +495,12 @@ export function IaPage() {
                         <TableCell className="whitespace-nowrap">
                           {new Date(c.creadoEn).toLocaleString('es-AR')}
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate font-medium">{c.proyecto}</TableCell>
+                        <TableCell className="max-w-[280px]">
+                          <div className="font-medium truncate">{c.proyecto}</div>
+                          {pedido && pedido !== c.proyecto && (
+                            <div className="text-xs text-stone-500 truncate mt-0.5">{pedido}</div>
+                          )}
+                        </TableCell>
                         <TableCell>{c.tecnica || resultado.tecnica_detectada || '—'}</TableCell>
                         <TableCell>{evalBadge(c.evaluacion)}</TableCell>
                         <TableCell>
@@ -501,6 +517,68 @@ export function IaPage() {
                         <TableRow>
                           <TableCell colSpan={5} className="bg-stone-50">
                             <div className="py-4 space-y-4 text-sm">
+                              <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="font-medium text-stone-700 mb-1">Lo que pidió</p>
+                                    {pedido ? (
+                                      <p className="text-stone-700 whitespace-pre-wrap">{pedido}</p>
+                                    ) : (
+                                      <p className="text-stone-400">Sin texto inicial (solo foto o chips).</p>
+                                    )}
+                                  </div>
+                                  {respuestas.length > 0 && (
+                                    <div>
+                                      <p className="font-medium text-stone-700 mb-1">Selecciones</p>
+                                      <ul className="space-y-1 text-stone-600">
+                                        {respuestas.map((r, i) => (
+                                          <li key={i}>
+                                            <span className="text-stone-500">{r.pregunta || 'Pregunta'}: </span>
+                                            <span className="font-medium text-stone-800">{r.respuesta || '—'}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {(ctx.notas_adicionales || []).length > 0 && (
+                                    <div>
+                                      <p className="font-medium text-stone-700 mb-1">Notas</p>
+                                      <ul className="list-disc pl-5 text-stone-600">
+                                        {ctx.notas_adicionales!.map((n, i) => (
+                                          <li key={i}>{n}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {(ctx.resumen?.detalles || []).length > 0 && (
+                                    <div>
+                                      <p className="font-medium text-stone-700 mb-1">Inferido</p>
+                                      <ul className="list-disc pl-5 text-stone-600">
+                                        {ctx.resumen!.detalles!.map((d, i) => (
+                                          <li key={i}>{d}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {!pedido && respuestas.length === 0 && ctx.tuvo_foto && !fotoUrl && (
+                                    <p className="text-stone-500">Adjuntó foto (no quedó guardada).</p>
+                                  )}
+                                </div>
+                                {fotoUrl ? (
+                                  <a href={fotoUrl} target="_blank" rel="noreferrer" className="shrink-0">
+                                    <img
+                                      src={fotoUrl}
+                                      alt="Foto del cliente"
+                                      className="h-32 w-32 object-cover rounded-lg border border-stone-200 bg-white"
+                                    />
+                                  </a>
+                                ) : ctx.tuvo_foto ? (
+                                  <div className="h-32 w-32 rounded-lg border border-dashed border-stone-300 text-stone-400 text-xs flex items-center justify-center text-center px-2">
+                                    Hubo foto, no se guardó
+                                  </div>
+                                ) : null}
+                              </div>
+
                               <div>
                                 <p className="font-medium text-stone-700 mb-1">Insumos recomendados</p>
                                 <ul className="list-disc pl-5 text-stone-600 space-y-1">
@@ -511,6 +589,12 @@ export function IaPage() {
                                 {resultado.nota && (
                                   <p className="mt-2 text-stone-500 italic">{resultado.nota}</p>
                                 )}
+                                {(resultado.supuestos?.length || resultado.chequeos?.length) ? (
+                                  <p className="mt-2 text-xs text-stone-500">
+                                    {resultado.supuestos?.length ? `Supuestos: ${resultado.supuestos.join(', ')}. ` : ''}
+                                    {resultado.chequeos?.length ? `Chequeos: ${resultado.chequeos.join(' · ')}` : ''}
+                                  </p>
+                                ) : null}
                               </div>
 
                               {!c.evaluacion && (

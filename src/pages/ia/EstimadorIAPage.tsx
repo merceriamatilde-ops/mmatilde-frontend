@@ -15,6 +15,7 @@ import { trackIA, trackWhatsApp } from '../../lib/analytics';
 import {
   consultarIA,
   registrarConsultaEnBO,
+  subirFotoConsultaIA,
   type ConsultaContexto,
   type ConsultaResponse,
   type PreguntaIA,
@@ -157,14 +158,22 @@ export function EstimadorIAPage() {
     setCargando(true);
     setError(null);
     try {
-      const result = await consultarIA(ctx, img);
+      let ctxConFoto = ctx;
+      const esPrimerPaso = (ctx.paso_refinamiento ?? 0) === 0;
+      if (img && !ctx.imagen_url && esPrimerPaso) {
+        const url = await subirFotoConsultaIA(img);
+        ctxConFoto = { ...ctx, tuvo_foto: true, imagen_url: url || undefined };
+      } else if (img || ctx.imagen_url) {
+        ctxConFoto = { ...ctx, tuvo_foto: true };
+      }
+      const result = await consultarIA(ctxConFoto, esPrimerPaso ? img : null);
       setRespuesta(result);
       setSeleccionActual({});
 
       if (result.estado === 'listo') {
         setPaso('resultado');
         trackIA('resultado_completo');
-        registrarConsultaEnBO(ctx, result).catch((err) => {
+        registrarConsultaEnBO(ctxConFoto, result).catch((err) => {
           console.warn('[IA] No se pudo guardar la consulta en el BO:', err);
         });
       } else {

@@ -53,6 +53,8 @@ export interface ConsultaContexto {
   notas_adicionales: string[];
   paso_refinamiento?: number;
   acepta_aproximado?: boolean;
+  tuvo_foto?: boolean;
+  imagen_url?: string;
 }
 
 export interface ConsultaResponse {
@@ -110,6 +112,7 @@ export async function registrarConsultaEnBO(
       contextoJson,
       resultadoJson,
       productosJson: JSON.stringify(result.productos_sugeridos),
+      imagenUrl: contexto.imagen_url || undefined,
     }),
   });
 
@@ -119,6 +122,22 @@ export async function registrarConsultaEnBO(
   }
 
   sessionStorage.setItem(`ia_logged_${idempotencyKey}`, '1');
+}
+
+export async function subirFotoConsultaIA(file: File): Promise<string | null> {
+  const apiBase =
+    import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'https://api.merceriamatilde.com/api');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${apiBase}/ia/consultas/imagen`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { url?: string };
+  return data.url || null;
 }
 
 export async function consultarIA(

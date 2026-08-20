@@ -168,6 +168,7 @@ export const api = {
     contextoJson: string;
     resultadoJson: string;
     productosJson?: string;
+    imagenUrl?: string;
     idempotencyKey?: string;
   }) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -183,6 +184,7 @@ export const api = {
         contextoJson: data.contextoJson,
         resultadoJson: data.resultadoJson,
         productosJson: data.productosJson,
+        imagenUrl: data.imagenUrl,
       }),
     });
   },
